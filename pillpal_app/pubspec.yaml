@@ -1,0 +1,45 @@
+name: pillpal
+description: "PillPal - Medicine Reminder App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+  firebase_auth: ^5.3.1
+
+  # Google Sign In
+  google_sign_in: ^6.2.1
+
+  # Local Notifications (replaces Cloud Functions FCM — free tier)
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+
+  # UI
+  google_fonts: ^6.2.1
+
+  # PDF Export
+  pdf: ^3.11.1
+  printing: ^5.13.1
+
+  # Utilities
+  intl: ^0.19.0
+  shared_preferences: ^2.3.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

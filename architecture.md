@@ -84,19 +84,21 @@ Indexes: `(user_id, scheduled_date)`, `(medicine_id, scheduled_date)`.
 
 ## API Surface (MVP)
 
+All routes use prefix **`/api/v1`**.
+
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/auth/register` | Create user |
-| POST | `/auth/login` | Returns JWT |
-| GET | `/users/me` | Current user profile |
-| GET | `/medicines` | List medicines for user |
-| POST | `/medicines` | Add medicine |
-| PATCH | `/medicines/{id}` | Edit |
-| DELETE | `/medicines/{id}` | Delete |
-| GET | `/dose-logs/today` | Today’s doses |
-| GET | `/dose-logs/history` | Date range / last N days |
-| POST | `/dose-logs/{id}/take` | Mark taken |
-| POST | `/dose-logs/sync` or `/scheduler/daily` | Generate today’s rows + mark missed (callable by app on open + cron) |
+| POST | `/api/v1/auth/register` | Create user |
+| POST | `/api/v1/auth/login` | Returns JWT |
+| GET | `/api/v1/users/me` | Current user profile |
+| GET | `/api/v1/medicines` | List medicines for user |
+| POST | `/api/v1/medicines` | Add medicine |
+| PATCH | `/api/v1/medicines/{id}` | Edit |
+| DELETE | `/api/v1/medicines/{id}` | Delete |
+| GET | `/api/v1/dose-logs/today` | Today’s doses |
+| GET | `/api/v1/dose-logs/history` | Date range / last N days |
+| POST | `/api/v1/dose-logs/{id}/take` | Mark taken |
+| POST | `/api/v1/dose-logs/sync` | Generate today’s rows + apply missed logic (app on open + optional cron) |
 
 ---
 

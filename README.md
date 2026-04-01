@@ -19,6 +19,7 @@
 | [architecture.md](architecture.md) | System design, PostgreSQL schema, API outline, folder layout |
 | [decision.md](decision.md) | Technology choices and rationale |
 | [work-distribution.md](work-distribution.md) | Team roles (Nikhil, Shreyash, CR, Snehal), phased step-by-step plan |
+| [backend-plan.md](backend-plan.md) | Full feature list, backend implementation, work breakdown, **backend phases 1–6** |
 
 ## Team
 

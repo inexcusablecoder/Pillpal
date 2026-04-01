@@ -1,1 +1,0 @@
-# PillPal FastAPI application package

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../services/firestore_service.dart';
-import '../../services/backend_service.dart';
+import '../../services/api_service.dart';
 import '../../models/log_entry.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/status_badge.dart';
@@ -19,7 +19,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final _firestoreService = FirestoreService();
-  final _backendService = BackendService();
+  final _api = ApiService();
   int _currentIndex = 0;
   bool _startupDone = false;
 
@@ -32,7 +32,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _runStartup() async {
-    await _backendService.runStartupChecks(_uid);
+    try {
+      await _api.logsStartup();
+    } catch (_) {
+      // Offline or API down: UI still loads from Firestore cache.
+    }
     if (mounted) setState(() => _startupDone = true);
   }
 
@@ -49,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _HomeTab(
         uid: _uid,
         firestoreService: _firestoreService,
-        backendService: _backendService,
+        api: _api,
         greeting: _greeting,
         startupDone: _startupDone,
       ),
@@ -99,14 +103,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _HomeTab extends StatelessWidget {
   final String uid;
   final FirestoreService firestoreService;
-  final BackendService backendService;
+  final ApiService api;
   final String greeting;
   final bool startupDone;
 
   const _HomeTab({
     required this.uid,
     required this.firestoreService,
-    required this.backendService,
+    required this.api,
     required this.greeting,
     required this.startupDone,
   });
@@ -270,10 +274,9 @@ class _HomeTab extends StatelessWidget {
                               log: logs[i],
                               onMarkTaken: () async {
                                 try {
-                                  await backendService.markAsTaken(
-                                    logs[i].id,
-                                    logs[i].medicineId,
-                                    uid,
+                                  await api.markTaken(
+                                    logId: logs[i].id,
+                                    medicineId: logs[i].medicineId,
                                   );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(

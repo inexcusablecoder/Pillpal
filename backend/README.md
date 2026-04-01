@@ -2,6 +2,10 @@
 
 Firebase **Firestore** is the database. Firebase **Authentication** issues ID tokens; this API verifies them and uses the **Admin SDK** to read/write Firestore (bypasses client security rules).
 
+## Security
+
+- **Never** commit `serviceAccountKey.json` or paste it in chat. If a key is exposed, **delete that key** in Firebase Console → Service accounts → Manage keys → Delete, then create a new key.
+
 ## What you must provide (manual setup)
 
 1. **Service account JSON**  
@@ -63,3 +67,8 @@ Get the token in Flutter: `await FirebaseAuth.instance.currentUser?.getIdToken()
 | POST | `/v1/logs/recalculate-adherence` | Yes |
 
 See `PHASES.md` for the phased rollout plan.
+
+## Flutter app (Android)
+
+The Flutter client calls this API with `Authorization: Bearer <Firebase ID token>`.  
+Configure base URL in `pillpal_app/lib/config/api_config.dart` (default `http://10.0.2.2:8000` for the Android emulator). Start uvicorn on your PC before running the app.

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/firestore_service.dart';
+import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
-import '../../models/medicine.dart';
 import '../../theme/app_theme.dart';
 
 class AddMedicineScreen extends StatefulWidget {
@@ -18,7 +16,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   final _dosageCtrl = TextEditingController();
   final _pillCountCtrl = TextEditingController(text: '30');
   final _refillAtCtrl = TextEditingController(text: '5');
-  final _firestoreService = FirestoreService();
+  final _api = ApiService();
   final _notifService = NotificationService();
 
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -59,27 +57,22 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     setState(() => _loading = true);
 
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final medicine = Medicine(
-        id: '',
-        userId: uid,
-        name: _nameCtrl.text.trim(),
-        dosage: _dosageCtrl.text.trim(),
+      final name = _nameCtrl.text.trim();
+      final dosage = _dosageCtrl.text.trim();
+      final medicineId = await _api.createMedicine(
+        name: name,
+        dosage: dosage,
         scheduledTime: _timeString,
         frequency: _frequency,
         pillCount: int.tryParse(_pillCountCtrl.text) ?? 30,
         refillAt: int.tryParse(_refillAtCtrl.text) ?? 5,
-        createdAt: DateTime.now(),
       );
 
-      final medicineId = await _firestoreService.addMedicine(medicine);
-
-      // Schedule local notification
       await _notifService.scheduleMedicineReminder(
         medicineId: medicineId,
-        medicineName: medicine.name,
-        dosage: medicine.dosage,
-        scheduledTime: medicine.scheduledTime,
+        medicineName: name,
+        dosage: dosage,
+        scheduledTime: _timeString,
       );
 
       if (mounted) {

@@ -1,9 +1,34 @@
-# PillPal
+# PillPal — Medicine Reminder & Health Monitoring
 
-This repository was **reset** to start a new stack:
+**Team:** CodeConquerors · **Hackathon track:** Healthcare  
 
-- **Backend:** FastAPI  
-- **Database:** PostgreSQL (not Firebase)
+**Problem statement:** Build a mobile app that reminds patients to take medications, sends notifications, tracks schedules, and maintains a history of medicine intake to improve adherence.
 
-Previous Flutter + Firebase / Firestore code has been removed.  
-Add the new backend and frontend here when the plan is ready.
+## Tech stack
+
+| Layer | Stack |
+|-------|--------|
+| Mobile | Flutter (Android) |
+| API | FastAPI |
+| Database | PostgreSQL |
+
+## Documentation
+
+| File | Contents |
+|------|----------|
+| [architecture.md](architecture.md) | System design, PostgreSQL schema, API outline, folder layout |
+| [decision.md](decision.md) | Technology choices and rationale |
+| [work-distribution.md](work-distribution.md) | Team roles (Nikhil, Shreyash, CR, Snehal), phased step-by-step plan |
+
+## Team
+
+| Role | Name |
+|------|------|
+| Frontend | Nikhil |
+| Backend | Shreyash |
+| UI/UX | CR |
+| DevOps / QA | Snehal |
+
+---
+
+*Repository structure: add `backend/` (FastAPI) and `pillpal_app/` (Flutter) as implementation proceeds.*

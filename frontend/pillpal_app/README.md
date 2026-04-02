@@ -1,6 +1,6 @@
 # pillpal_app
 
-PillPal Medicine Reminder App (Flutter). Talks to the FastAPI backend under `/api/v1`.
+PillPal Medicine Reminder App (Flutter). Lives in the repo at **`frontend/pillpal_app/`** (sibling to `backend/`). Talks to the FastAPI backend under `/api/v1`.
 
 ## Backend connection
 
@@ -12,7 +12,7 @@ Set the API base URL in `lib/config/constants.dart` (`AppConstants.apiBaseUrl`).
 | Chrome / web | `http://localhost:8000` |
 | Physical phone | `http://<your-PC-LAN-IP>:8000` |
 
-Run the API from the repo root:
+Run the API from the repository root (parent of `frontend/`):
 
 ```bash
 cd backend

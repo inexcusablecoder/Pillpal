@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../models/dose_log.dart';
 import '../services/api_client.dart';
+import '../utils/api_error_message.dart';
 
 class DoseLogProvider extends ChangeNotifier {
   List<DoseLog> _todayLogs = [];
@@ -38,7 +39,7 @@ class DoseLogProvider extends ChangeNotifier {
       await ApiClient.instance.syncDoseLogs();
       await fetchToday();
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
     } catch (e) {
       _error = 'Failed to sync doses.';
     }
@@ -58,7 +59,7 @@ class DoseLogProvider extends ChangeNotifier {
           .map((e) => DoseLog.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
     } catch (e) {
       _error = 'Failed to load today\'s doses.';
     }
@@ -78,7 +79,7 @@ class DoseLogProvider extends ChangeNotifier {
           .map((e) => DoseLog.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
     } catch (e) {
       _error = 'Failed to load history.';
     }
@@ -100,7 +101,7 @@ class DoseLogProvider extends ChangeNotifier {
       }
       return true;
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       notifyListeners();
       return false;
     } catch (e) {
@@ -108,13 +109,5 @@ class DoseLogProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  String _extractError(DioException e) {
-    if (e.response?.data is Map) {
-      final detail = (e.response!.data as Map)['detail'];
-      if (detail is String) return detail;
-    }
-    return 'Something went wrong.';
   }
 }

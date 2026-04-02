@@ -10,6 +10,7 @@ __pycache__/
 # Flutter (when added)
 .dart_tool/
 build/
+**/errors.txt
 *.iml
 
 # OS / IDE

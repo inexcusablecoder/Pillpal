@@ -132,7 +132,7 @@ backend/
 ## Flutter App Layout (reference for frontend)
 
 ```
-pillpal_app/lib/
+frontend/pillpal_app/lib/
 ├── main.dart
 ├── config/
 ├── models/

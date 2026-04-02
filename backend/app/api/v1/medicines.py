@@ -81,4 +81,4 @@ async def delete_medicine(
     med = result.scalar_one_or_none()
     if med is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medicine not found")
-    db.delete(med)
+    await db.delete(med)

@@ -32,4 +32,4 @@
 
 ---
 
-*Repository structure: add `backend/` (FastAPI) and `pillpal_app/` (Flutter) as implementation proceeds.*
+*Repository layout: `backend/` (FastAPI). Flutter app lives in a separate folder when added by the frontend owner. Deployment is a later step.*

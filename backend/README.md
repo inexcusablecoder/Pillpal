@@ -54,16 +54,28 @@ py -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 py -m pytest
 ```
 
+- **Unit / smoke:** health, root, favicon (no DB required for most checks).
+- **Integration** (`@pytest.mark.integration`): auth, medicines, dose logs — need a running PostgreSQL and valid `DATABASE_URL` in `.env`. If the DB is unreachable, those tests are skipped automatically.
+
+Tests use Starlette’s synchronous `TestClient` (one event loop for async SQLAlchemy).
+
 ## Project layout
 
 ```
-app/
-  main.py           # FastAPI app, CORS, exception handlers, health
-  core/             # config, database, security, deps
-  models/           # SQLAlchemy ORM
-  schemas/          # Pydantic
-  api/v1/           # Routers (auth, users, medicines, dose-logs)
-  services/         # Dose log sync / missed logic
-alembic/            # Migrations
-tests/              # Pytest
+backend/
+├── app/
+│   ├── main.py              # FastAPI app factory, CORS, health, exception handlers
+│   ├── core/                # config, database, security, deps
+│   ├── models/              # SQLAlchemy ORM
+│   ├── schemas/             # Pydantic request/response models
+│   ├── api/v1/              # Routers: auth, users, medicines, dose_logs
+│   └── services/            # Dose log sync, missed logic
+├── alembic/                 # Alembic migrations + env.py
+├── alembic.ini
+├── sql/                     # Optional raw SQL (e.g. init_schema.sql for pgAdmin)
+├── scripts/                 # Dev helpers (e.g. verify_tables.py)
+├── tests/                   # pytest + pytest.ini
+├── requirements.txt
+├── .env.example
+└── README.md
 ```

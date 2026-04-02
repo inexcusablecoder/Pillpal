@@ -7,6 +7,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.responses import Response
 from sqlalchemy import text
 
 from app.api.v1.router import api_router
@@ -75,6 +76,22 @@ def create_app() -> FastAPI:
         )
 
     application.include_router(api_router, prefix=settings.api_v1_prefix)
+
+    @application.get("/", tags=["root"], summary="API entry")
+    async def root() -> dict[str, str | None]:
+        """Avoids 404 when opening the server base URL in a browser."""
+        return {
+            "service": "PillPal API",
+            "version": "1.0.0",
+            "docs": "/docs" if settings.environment != "production" else None,
+            "health": "/health",
+            "api": settings.api_v1_prefix,
+        }
+
+    @application.get("/favicon.ico", include_in_schema=False)
+    async def favicon() -> Response:
+        """Browsers request this automatically; return empty response instead of 404."""
+        return Response(status_code=204)
 
     @application.get("/health", tags=["health"])
     async def health() -> dict[str, str]:

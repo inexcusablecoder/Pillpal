@@ -1,5 +1,6 @@
 from app.models.dose_log import DoseLog
 from app.models.medicine import Medicine
+from app.models.reference_medicine import ReferenceMedicine
 from app.models.user import User
 
-__all__ = ["User", "Medicine", "DoseLog"]
+__all__ = ["User", "Medicine", "DoseLog", "ReferenceMedicine"]

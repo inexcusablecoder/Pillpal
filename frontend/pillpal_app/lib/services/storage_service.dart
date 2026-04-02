@@ -124,6 +124,17 @@ class StorageService {
     await _prefs.remove(AppConstants.userKey);
   }
 
+  // ── Medicine catalog (from GET /medicines/cache for offline dropdown) ──
+  static const String _medicineCatalogKey = 'pillpal_medicine_catalog_names';
+
+  Future<void> saveMedicineCatalogNames(List<String> names) async {
+    await _prefs.setStringList(_medicineCatalogKey, names);
+  }
+
+  List<String>? getMedicineCatalogNames() {
+    return _prefs.getStringList(_medicineCatalogKey);
+  }
+
   // ── Clear All ──────────────────────────────────────
   Future<void> clearAll() async {
     await _prefs.remove(AppConstants.tokenKey);

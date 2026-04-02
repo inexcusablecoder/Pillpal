@@ -110,6 +110,12 @@ class ApiClient {
     return response.data as List<dynamic>;
   }
 
+  /// Curated names from DB (`reference_medicines`) — same on Neon and local Postgres.
+  Future<List<dynamic>> getMedicineCatalog() async {
+    final response = await _dio.get('/medicines/catalog');
+    return response.data as List<dynamic>;
+  }
+
   Future<Map<String, dynamic>> createMedicine({
     required String name,
     required String dosage,

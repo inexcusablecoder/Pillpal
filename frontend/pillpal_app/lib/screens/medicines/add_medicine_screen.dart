@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../../config/common_medicines.dart';
 import '../../config/theme.dart';
 import '../../models/medicine.dart';
 import '../../providers/medicine_provider.dart';
+import '../../services/api_client.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/gradient_button.dart';
 
@@ -18,7 +20,10 @@ class AddMedicineScreen extends StatefulWidget {
 
 class _AddMedicineScreenState extends State<AddMedicineScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
+  String? _selectedMedicine; // null = not chosen; [CommonMedicines.otherValue] = custom
+  List<String> _catalogNames = List<String>.from(CommonMedicines.names);
+  bool _catalogLoading = true;
+  late TextEditingController _otherNameController;
   late TextEditingController _dosageController;
   late TextEditingController _pillCountController;
   late TextEditingController _thresholdController;
@@ -31,7 +36,16 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.medicine?.name ?? '');
+    _otherNameController = TextEditingController();
+    final existingName = widget.medicine?.name ?? '';
+    if (existingName.isNotEmpty) {
+      if (CommonMedicines.isListed(existingName)) {
+        _selectedMedicine = existingName;
+      } else {
+        _selectedMedicine = CommonMedicines.otherValue;
+        _otherNameController.text = existingName;
+      }
+    }
     _dosageController = TextEditingController(text: widget.medicine?.dosage ?? '');
     _pillCountController = TextEditingController(
       text: widget.medicine?.pillCount?.toString() ?? '',
@@ -47,11 +61,58 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         }
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMedicineCatalog());
+  }
+
+  void _reconcileSelectionWithCatalog() {
+    final med = widget.medicine;
+    if (med == null) return;
+    final n = med.name;
+    if (_catalogNames.contains(n)) {
+      _selectedMedicine = n;
+    } else {
+      _selectedMedicine = CommonMedicines.otherValue;
+      _otherNameController.text = n;
+    }
+  }
+
+  Future<void> _loadMedicineCatalog() async {
+    final storage = await StorageService.getInstance();
+    final cached = storage.getMedicineCatalogNames();
+    if (cached != null && cached.isNotEmpty && mounted) {
+      setState(() {
+        _catalogNames = cached;
+        _reconcileSelectionWithCatalog();
+      });
+    }
+    try {
+      final raw = await ApiClient.instance.getMedicineCatalog();
+      final names = raw
+          .map((e) => (e as Map<String, dynamic>)['name'] as String)
+          .toList();
+      await storage.saveMedicineCatalogNames(names);
+      if (!mounted) return;
+      setState(() {
+        _catalogNames = names;
+        _catalogLoading = false;
+        _reconcileSelectionWithCatalog();
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _catalogLoading = false;
+          if (_catalogNames.isEmpty) {
+            _catalogNames = List<String>.from(CommonMedicines.names);
+          }
+          _reconcileSelectionWithCatalog();
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _otherNameController.dispose();
     _dosageController.dispose();
     _pillCountController.dispose();
     _thresholdController.dispose();
@@ -92,12 +153,34 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     }
   }
 
+  String? _resolvedMedicineName() {
+    if (_selectedMedicine == null) return null;
+    if (_selectedMedicine == CommonMedicines.otherValue) {
+      return _otherNameController.text.trim();
+    }
+    return _selectedMedicine;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     final meds = context.read<MedicineProvider>();
+    final name = _resolvedMedicineName();
+    if (name == null || name.isEmpty) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select a medicine from the list or enter a name under Other.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+      return;
+    }
+
     final pillCount = _pillCountController.text.trim().isNotEmpty
         ? int.tryParse(_pillCountController.text.trim())
         : null;
@@ -110,7 +193,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     if (isEditing) {
       ok = await meds.updateMedicine(
         widget.medicine!.id,
-        name: _nameController.text.trim(),
+        name: name,
         dosage: _dosageController.text.trim(),
         scheduledTime: _timeToApi(_selectedTime),
         reminderEnabled: _reminderEnabled,
@@ -119,7 +202,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       if (ok) medId = widget.medicine!.id;
     } else {
       medId = await meds.addMedicine(
-        name: _nameController.text.trim(),
+        name: name,
         dosage: _dosageController.text.trim(),
         scheduledTime: _timeToApi(_selectedTime),
         reminderEnabled: _reminderEnabled,
@@ -196,18 +279,66 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 ),
               ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8)),
               const SizedBox(height: 32),
-
-              // Name
-              TextFormField(
-                controller: _nameController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Medicine Name',
-                  prefixIcon: Icon(Icons.medical_services_outlined, color: AppColors.textMuted),
-                  hintText: 'e.g. Metformin',
+              if (_catalogLoading)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    color: AppColors.primary,
+                    backgroundColor: AppColors.surfaceLight,
+                  ),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+
+              // Medicine (dropdown from API/DB + cache; fallback: bundled list)
+              DropdownButtonFormField<String?>(
+                // ignore: deprecated_member_use
+                value: _selectedMedicine,
+                isExpanded: true,
+                isDense: false,
+                menuMaxHeight: 360,
+                dropdownColor: AppColors.surface,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                decoration: const InputDecoration(
+                  labelText: 'Medicine',
+                  prefixIcon: Icon(Icons.medical_services_outlined, color: AppColors.textMuted),
+                  hintText: 'Choose from list',
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(
+                      '— Select medicine —',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  ),
+                  ..._catalogNames.map(
+                    (n) => DropdownMenuItem<String?>(
+                      value: n,
+                      child: Text(n, overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                  const DropdownMenuItem<String?>(
+                    value: CommonMedicines.otherValue,
+                    child: Text('Other — type name below'),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedMedicine = v),
+                validator: (v) => v == null ? 'Select a medicine' : null,
               ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: 0.1),
+              if (_selectedMedicine == CommonMedicines.otherValue) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _otherNameController,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Custom medicine name',
+                    prefixIcon: Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
+                    hintText: 'e.g. custom brand',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Enter the medicine name' : null,
+                ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.05),
+              ],
               const SizedBox(height: 16),
 
               // Dosage

@@ -7,10 +7,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.medicine import Medicine
+from app.models.reference_medicine import ReferenceMedicine
 from app.models.user import User
 from app.schemas.medicine import MedicineCreate, MedicineOut, MedicineUpdate
+from app.schemas.reference_medicine import ReferenceMedicineOut
 
 router = APIRouter()
+
+
+@router.get("/catalog", response_model=list[ReferenceMedicineOut])
+async def list_medicine_catalog(
+    db: AsyncSession = Depends(get_db),
+) -> list[ReferenceMedicine]:
+    """Curated medicine names for app dropdowns (seeded in DB; same on cloud and local Postgres)."""
+    q = select(ReferenceMedicine).order_by(ReferenceMedicine.sort_order, ReferenceMedicine.name)
+    result = await db.execute(q)
+    return list(result.scalars().all())
 
 
 @router.get("", response_model=list[MedicineOut])

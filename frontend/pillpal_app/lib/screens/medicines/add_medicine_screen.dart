@@ -23,6 +23,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   late TextEditingController _pillCountController;
   late TextEditingController _thresholdController;
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  bool _reminderEnabled = true;
   bool _isLoading = false;
 
   bool get isEditing => widget.medicine != null;
@@ -38,6 +39,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     _thresholdController = TextEditingController(text: '5');
     if (widget.medicine != null) {
       _selectedTime = widget.medicine!.scheduledTime;
+      _reminderEnabled = widget.medicine!.reminderEnabled;
       StorageService.getInstance().then((storage) {
         final val = storage.getRefillThreshold(widget.medicine!.id);
         if (val != null) {
@@ -111,6 +113,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         name: _nameController.text.trim(),
         dosage: _dosageController.text.trim(),
         scheduledTime: _timeToApi(_selectedTime),
+        reminderEnabled: _reminderEnabled,
         pillCount: pillCount,
       );
       if (ok) medId = widget.medicine!.id;
@@ -119,6 +122,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         name: _nameController.text.trim(),
         dosage: _dosageController.text.trim(),
         scheduledTime: _timeToApi(_selectedTime),
+        reminderEnabled: _reminderEnabled,
         pillCount: pillCount,
       );
       ok = medId != null;
@@ -261,7 +265,22 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   hintText: 'e.g. 5 (Warn when 5 pills left)',
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 450.ms).slideX(begin: 0.1),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Remind me at this time',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Alarm-style notification when Profile → Alarm reminders is on',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                value: _reminderEnabled,
+                activeThumbColor: AppColors.primary,
+                onChanged: (v) => setState(() => _reminderEnabled = v),
+              ).animate().fadeIn(duration: 400.ms, delay: 480.ms).slideX(begin: 0.1),
+              const SizedBox(height: 24),
 
               // Save button
               GradientButton(

@@ -10,6 +10,7 @@ class MedicineCreate(BaseModel):
     scheduled_time: time
     frequency: str = Field(default="daily", max_length=32)
     active: bool = True
+    reminder_enabled: bool = True
     pill_count: int | None = Field(default=None, ge=0)
 
 
@@ -19,6 +20,7 @@ class MedicineUpdate(BaseModel):
     scheduled_time: time | None = None
     frequency: str | None = Field(default=None, max_length=32)
     active: bool | None = None
+    reminder_enabled: bool | None = None
     pill_count: int | None = Field(default=None, ge=0)
 
 
@@ -30,6 +32,7 @@ class MedicineOut(BaseModel):
     scheduled_time: time
     frequency: str
     active: bool
+    reminder_enabled: bool
     pill_count: int | None
     created_at: datetime
 

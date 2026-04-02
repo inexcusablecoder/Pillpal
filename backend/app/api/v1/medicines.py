@@ -40,6 +40,7 @@ async def create_medicine(
         scheduled_time=body.scheduled_time,
         frequency=body.frequency,
         active=body.active,
+        reminder_enabled=body.reminder_enabled,
         pill_count=body.pill_count,
     )
     db.add(med)

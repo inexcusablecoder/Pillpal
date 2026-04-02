@@ -128,6 +128,39 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Alarm-style dose reminders (local notifications). Phone number stored for a future paid call provider.
+  Future<bool> updateReminderSettings({
+    bool? alarmRemindersEnabled,
+    String? phoneE164,
+    bool clearPhone = false,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final data = await ApiClient.instance.updateMe(
+        alarmRemindersEnabled: alarmRemindersEnabled,
+        phoneE164: phoneE164,
+        clearPhone: clearPhone,
+      );
+      _user = User.fromJson(data);
+      final storage = await StorageService.getInstance();
+      await storage.saveUserJson(data);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on DioException catch (e) {
+      _error = messageFromDio(e);
+    } catch (e) {
+      _error = 'Failed to update reminder settings.';
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   Future<void> logout() async {
     final storage = await StorageService.getInstance();
     await storage.clearAll();

@@ -1,19 +1,66 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
+import '../services/web_reminder.dart';
 import '../utils/api_error_message.dart';
 
 class MedicineProvider extends ChangeNotifier {
   List<Medicine> _medicines = [];
   bool _isLoading = false;
   String? _error;
+  /// Master switch from GET /users/me — must be on for any dose alarm.
+  bool _userAlarmRemindersEnabled = false;
 
   List<Medicine> get medicines => _medicines;
   List<Medicine> get activeMedicines => _medicines.where((m) => m.active).toList();
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get userAlarmRemindersEnabled => _userAlarmRemindersEnabled;
+
+  void setUserAlarmRemindersEnabled(bool enabled) {
+    if (_userAlarmRemindersEnabled == enabled) return;
+    _userAlarmRemindersEnabled = enabled;
+    _applyAllNotificationSchedules();
+  }
+
+  Future<void> _applyAllNotificationSchedules() async {
+    for (final m in _medicines) {
+      await _scheduleMedicineIfNeeded(m);
+    }
+  }
+
+  Future<void> _scheduleMedicineIfNeeded(Medicine m) async {
+    cancelWebReminder(m.id);
+    if (!kIsWeb) {
+      await NotificationService.instance.cancelReminder(m.id);
+    }
+
+    if (!m.active || !_userAlarmRemindersEnabled || !m.reminderEnabled) {
+      return;
+    }
+
+    if (kIsWeb) {
+      scheduleWebReminder(
+        medicineId: m.id,
+        medicineName: m.name,
+        dosage: m.dosage,
+        hour: m.scheduledTime.hour,
+        minute: m.scheduledTime.minute,
+      );
+      return;
+    }
+
+    await NotificationService.instance.scheduleDailyMedicineReminder(
+      medicineId: m.id,
+      medicineName: m.name,
+      dosage: m.dosage,
+      hour: m.scheduledTime.hour,
+      minute: m.scheduledTime.minute,
+    );
+  }
 
   Future<void> fetchMedicines() async {
     _isLoading = true;
@@ -25,6 +72,7 @@ class MedicineProvider extends ChangeNotifier {
       _medicines = data
           .map((e) => Medicine.fromJson(e as Map<String, dynamic>))
           .toList();
+      await _applyAllNotificationSchedules();
     } on DioException catch (e) {
       _error = messageFromDio(e);
     } catch (e) {
@@ -40,6 +88,7 @@ class MedicineProvider extends ChangeNotifier {
     required String dosage,
     required String scheduledTime,
     String frequency = 'daily',
+    bool reminderEnabled = true,
     int? pillCount,
   }) async {
     _isLoading = true;
@@ -52,32 +101,13 @@ class MedicineProvider extends ChangeNotifier {
         dosage: dosage,
         scheduledTime: scheduledTime,
         frequency: frequency,
+        reminderEnabled: reminderEnabled,
         pillCount: pillCount,
       );
       await fetchMedicines();
 
-      // Schedule Native Alert
-      final parts = scheduledTime.split(':');
-      String? returnedId;
-      if (parts.length >= 2) {
-        final h = int.tryParse(parts[0]) ?? 8;
-        final m = int.tryParse(parts[1]) ?? 0;
-        
-        // Retrieve the newly synced medicine ID
-        final meds = _medicines.where((med) => med.name == name).toList();
-        if (meds.isNotEmpty) {
-          returnedId = meds.first.id;
-          await NotificationService.instance.scheduleDailyMedicineReminder(
-            medicineId: meds.first.id,
-            medicineName: name,
-            dosage: dosage,
-            hour: h,
-            minute: m,
-          );
-        }
-      }
-
-      return returnedId ?? _medicines.firstWhere((m) => m.name == name).id;
+      final match = _medicines.where((med) => med.name == name).toList();
+      return match.isNotEmpty ? match.first.id : null;
     } on DioException catch (e) {
       _error = messageFromDio(e);
       _isLoading = false;
@@ -97,6 +127,7 @@ class MedicineProvider extends ChangeNotifier {
     String? dosage,
     String? scheduledTime,
     bool? active,
+    bool? reminderEnabled,
     int? pillCount,
   }) async {
     _error = null;
@@ -108,29 +139,10 @@ class MedicineProvider extends ChangeNotifier {
         dosage: dosage,
         scheduledTime: scheduledTime,
         active: active,
+        reminderEnabled: reminderEnabled,
         pillCount: pillCount,
       );
       await fetchMedicines();
-
-      if (scheduledTime != null || name != null || dosage != null || active != null) {
-        // Just cancel and let them add a new one if it becomes complex 
-        // to retrieve all unchanged properties for rescheduling.
-        await NotificationService.instance.cancelReminder(id);
-        
-        final med = _medicines.firstWhere((m) => m.id == id);
-        if (med.active) {
-            final h = med.scheduledTime.hour;
-            final m = med.scheduledTime.minute;
-            await NotificationService.instance.scheduleDailyMedicineReminder(
-              medicineId: med.id,
-              medicineName: med.name,
-              dosage: med.dosage,
-              hour: h,
-              minute: m,
-            );
-        }
-      }
-
       return true;
     } on DioException catch (e) {
       _error = messageFromDio(e);
@@ -149,10 +161,8 @@ class MedicineProvider extends ChangeNotifier {
     try {
       await ApiClient.instance.deleteMedicine(id);
       _medicines.removeWhere((m) => m.id == id);
-      
-      // Stop native alerts immediately
+      cancelWebReminder(id);
       await NotificationService.instance.cancelReminder(id);
-      
       notifyListeners();
       return true;
     } on DioException catch (e) {

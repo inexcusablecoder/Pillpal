@@ -68,10 +68,12 @@ class _AppRootState extends State<AppRoot> {
     ApiClient.instance.onUnauthorized = () {
       context.read<AuthProvider>().logout();
     };
-    // Initialize auth (check saved token)
-    context.read<AuthProvider>().init();
-    // Initialize family members
-    context.read<FamilyProvider>().init();
+    // Defer so providers don't notify during the first build (web / strict mode).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AuthProvider>().init();
+      context.read<FamilyProvider>().init();
+    });
   }
 
   @override

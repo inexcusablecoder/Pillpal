@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,8 @@ import '../../config/theme.dart';
 import '../../models/family_member.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import '../../providers/medicine_provider.dart';
+import '../../services/web_reminder.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/gradient_button.dart';
 import 'add_family_member_modal.dart';
@@ -20,11 +23,22 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  String? _phoneFieldUserId;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  void _syncPhoneFieldForUser(String? userId, String? phoneE164) {
+    if (userId == null) return;
+    if (_phoneFieldUserId != userId) {
+      _phoneFieldUserId = userId;
+      _phoneController.text = phoneE164 ?? '';
+    }
   }
 
   @override
@@ -32,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final family = context.watch<FamilyProvider>();
+    _syncPhoneFieldForUser(user?.id, user?.phoneE164);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -100,6 +115,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ).animate().fadeIn(duration: 500.ms, delay: 300.ms).slideY(begin: 0.1),
+
+              const SizedBox(height: 24),
+
+              // Dose alarms (free: local notifications; phone stored for future paid calls)
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.alarm_rounded, color: AppColors.primary.withValues(alpha: 0.9)),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Dose reminders',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Turn on for alarm-style alerts at each medicine’s scheduled time. '
+                      'Real phone calls need a paid provider later — we store your number for that.',
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Alarm reminders',
+                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        kIsWeb
+                            ? 'Browser: allow notifications when prompted. Keep this tab open for alerts.'
+                            : 'Requires notification + exact alarm permission on Android',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      value: user?.alarmRemindersEnabled ?? false,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: auth.isLoading
+                          ? null
+                          : (v) async {
+                              final ok = await auth.updateReminderSettings(
+                                alarmRemindersEnabled: v,
+                              );
+                              if (ok && context.mounted) {
+                                context.read<MedicineProvider>().setUserAlarmRemindersEnabled(v);
+                                if (kIsWeb && v) {
+                                  final granted =
+                                      await requestBrowserNotificationPermission();
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        granted
+                                            ? 'Notifications allowed. Dose reminders fire while this tab stays open.'
+                                            : 'Click the lock/info icon in the address bar and allow Notifications for localhost.',
+                                      ),
+                                      backgroundColor:
+                                          granted ? AppColors.success : AppColors.warning,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                    ),
+                    if (kIsWeb) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: auth.isLoading
+                              ? null
+                              : () async {
+                                  final granted =
+                                      await requestBrowserNotificationPermission();
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        granted
+                                            ? 'Notifications are allowed for this site.'
+                                            : 'Blocked or not supported. Use the site settings (lock icon) → Notifications → Allow.',
+                                      ),
+                                      backgroundColor:
+                                          granted ? AppColors.success : AppColors.warning,
+                                    ),
+                                  );
+                                },
+                          icon: const Icon(Icons.notifications_active_outlined, size: 18),
+                          label: const Text('Ask browser for notification permission'),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile (E.164, optional)',
+                        hintText: '+919876543210',
+                        prefixIcon: Icon(Icons.phone_android_rounded, color: AppColors.textMuted),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: auth.isLoading
+                            ? null
+                            : () async {
+                                final ok = await auth.updateReminderSettings(
+                                  phoneE164: _phoneController.text.trim(),
+                                );
+                                if (context.mounted && ok) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Phone number saved'),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
+                        icon: const Icon(Icons.save_rounded, size: 18),
+                        label: const Text('Save phone'),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 500.ms, delay: 350.ms).slideY(begin: 0.1),
 
               const SizedBox(height: 24),
 

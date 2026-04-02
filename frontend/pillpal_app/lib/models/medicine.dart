@@ -8,6 +8,7 @@ class Medicine {
   final TimeOfDay scheduledTime;
   final String frequency;
   final bool active;
+  final bool reminderEnabled;
   final int? pillCount;
   final DateTime createdAt;
 
@@ -19,6 +20,7 @@ class Medicine {
     required this.scheduledTime,
     required this.frequency,
     required this.active,
+    this.reminderEnabled = true,
     this.pillCount,
     required this.createdAt,
   });
@@ -36,6 +38,7 @@ class Medicine {
       ),
       frequency: json['frequency'] as String,
       active: json['active'] as bool,
+      reminderEnabled: json['reminder_enabled'] as bool? ?? true,
       pillCount: json['pill_count'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );

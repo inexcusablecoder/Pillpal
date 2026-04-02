@@ -4,16 +4,24 @@ import '../config/constants.dart';
 
 class StorageService {
   static StorageService? _instance;
+  static Future<StorageService>? _initFuture;
   late SharedPreferences _prefs;
 
   StorageService._();
 
+  /// Single-flight init so concurrent callers never see `_instance` before `_prefs`.
   static Future<StorageService> getInstance() async {
-    if (_instance == null) {
-      _instance = StorageService._();
-      _instance!._prefs = await SharedPreferences.getInstance();
-    }
-    return _instance!;
+    if (_instance != null) return _instance!;
+    _initFuture ??= _create();
+    return _initFuture!;
+  }
+
+  static Future<StorageService> _create() async {
+    final prefs = await SharedPreferences.getInstance();
+    final instance = StorageService._();
+    instance._prefs = prefs;
+    _instance = instance;
+    return instance;
   }
 
   // ── Token ──────────────────────────────────────────

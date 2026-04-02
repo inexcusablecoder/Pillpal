@@ -24,6 +24,7 @@ class Medicine(Base):
     scheduled_time: Mapped[time] = mapped_column(Time)
     frequency: Mapped[str] = mapped_column(String(32), default="daily")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     pill_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

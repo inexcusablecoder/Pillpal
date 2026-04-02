@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -66,23 +67,31 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
+    if (kIsWeb) {
+      log('Skipping local notification schedule on web', name: 'Notification');
+      return;
+    }
     if (!_isInitialized) await init();
 
     final int notificationId = medicineId.hashCode;
 
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'daily_medicine_reminders', // channel id
-      'Medicine Reminders', // channel name
-      channelDescription: 'Daily alerts to take scheduled medicines',
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'daily_medicine_reminders',
+      'Medicine Reminders',
+      channelDescription:
+          'Alarm-style alerts at your scheduled dose time (free; real phone calls need a paid provider).',
       importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
+      priority: Priority.max,
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      fullScreenIntent: true,
+      ticker: 'Medicine reminder',
       enableVibration: true,
       playSound: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
     );
 
-    const NotificationDetails platformDetails =
+    final NotificationDetails platformDetails =
         NotificationDetails(android: androidDetails);
 
     final tz.TZDateTime scheduleTime = _nextInstanceOfTime(hour, minute);
@@ -108,6 +117,7 @@ class NotificationService {
 
   /// Cancels a specific existing medication schedule
   Future<void> cancelReminder(String medicineId) async {
+    if (kIsWeb) return;
     try {
       final int id = medicineId.hashCode;
       await _notificationsPlugin.cancel(id);

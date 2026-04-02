@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/medicine_provider.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/medicines/medicines_screen.dart';
@@ -15,6 +18,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
+  bool? _lastUserAlarmFlag;
 
   final _screens = const [
     DashboardScreen(),
@@ -26,6 +30,16 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final enabled = auth.user?.alarmRemindersEnabled ?? false;
+    if (_lastUserAlarmFlag != enabled) {
+      _lastUserAlarmFlag = enabled;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        context.read<MedicineProvider>().setUserAlarmRemindersEnabled(enabled);
+      });
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,

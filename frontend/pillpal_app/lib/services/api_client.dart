@@ -81,10 +81,23 @@ class ApiClient {
     return response.data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> updateMe({String? displayName}) async {
-    final response = await _dio.patch('/users/me', data: {
-      if (displayName != null) 'display_name': displayName,
-    });
+  Future<Map<String, dynamic>> updateMe({
+    String? displayName,
+    bool? alarmRemindersEnabled,
+    String? phoneE164,
+    bool clearPhone = false,
+  }) async {
+    final data = <String, dynamic>{};
+    if (displayName != null) data['display_name'] = displayName;
+    if (alarmRemindersEnabled != null) {
+      data['alarm_reminders_enabled'] = alarmRemindersEnabled;
+    }
+    if (clearPhone) {
+      data['phone_e164'] = null;
+    } else if (phoneE164 != null) {
+      data['phone_e164'] = phoneE164;
+    }
+    final response = await _dio.patch('/users/me', data: data);
     return response.data as Map<String, dynamic>;
   }
 
@@ -103,6 +116,7 @@ class ApiClient {
     required String scheduledTime,
     String frequency = 'daily',
     bool active = true,
+    bool reminderEnabled = true,
     int? pillCount,
   }) async {
     final response = await _dio.post('/medicines', data: {
@@ -111,6 +125,7 @@ class ApiClient {
       'scheduled_time': scheduledTime,
       'frequency': frequency,
       'active': active,
+      'reminder_enabled': reminderEnabled,
       if (pillCount != null) 'pill_count': pillCount,
     });
     return response.data as Map<String, dynamic>;
@@ -123,6 +138,7 @@ class ApiClient {
     String? scheduledTime,
     String? frequency,
     bool? active,
+    bool? reminderEnabled,
     int? pillCount,
   }) async {
     final response = await _dio.patch('/medicines/$id', data: {
@@ -131,6 +147,7 @@ class ApiClient {
       if (scheduledTime != null) 'scheduled_time': scheduledTime,
       if (frequency != null) 'frequency': frequency,
       if (active != null) 'active': active,
+      if (reminderEnabled != null) 'reminder_enabled': reminderEnabled,
       if (pillCount != null) 'pill_count': pillCount,
     });
     return response.data as Map<String, dynamic>;

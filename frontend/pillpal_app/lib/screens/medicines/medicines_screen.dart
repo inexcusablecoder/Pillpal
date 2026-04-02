@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/medicine.dart';
 import '../../providers/medicine_provider.dart';
+import '../../services/web_reminder.dart';
 import '../../widgets/medicine_card.dart';
 import 'add_medicine_screen.dart';
 
@@ -89,6 +91,102 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
                     ),
                   ],
                 ).animate().fadeIn(duration: 500.ms),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (kIsWeb)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.warning.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Browser: dose reminders use a desktop notification at the scheduled time. '
+                                    'Keep this tab open. Allow notifications (button below or Profile). '
+                                    'Use the Android app for full background alarms.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: () async {
+                                final ok = await requestBrowserNotificationPermission();
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? 'Notifications allowed for this site.'
+                                          : 'Use the lock icon in the address bar → Site settings → Notifications → Allow.',
+                                    ),
+                                    backgroundColor:
+                                        ok ? AppColors.success : AppColors.warning,
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.notifications_active_outlined, size: 18),
+                              label: const Text('Allow browser notifications'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (kIsWeb && !meds.userAlarmRemindersEnabled) const SizedBox(height: 10),
+                    if (!meds.userAlarmRemindersEnabled)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.danger.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.notifications_off_outlined,
+                                color: AppColors.danger, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Reminders are off. Open Profile and turn on “Alarm reminders”.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
 

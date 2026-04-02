@@ -20,8 +20,9 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> User:
-    if body.display_name is not None:
-        current.display_name = body.display_name
+    data = body.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        setattr(current, key, value)
     await db.flush()
     await db.refresh(current)
     return current

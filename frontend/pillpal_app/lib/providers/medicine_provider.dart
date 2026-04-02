@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
+import '../utils/api_error_message.dart';
 
 class MedicineProvider extends ChangeNotifier {
   List<Medicine> _medicines = [];
@@ -25,7 +26,7 @@ class MedicineProvider extends ChangeNotifier {
           .map((e) => Medicine.fromJson(e as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
     } catch (e) {
       _error = 'Failed to load medicines.';
     }
@@ -78,7 +79,7 @@ class MedicineProvider extends ChangeNotifier {
 
       return returnedId ?? _medicines.firstWhere((m) => m.name == name).id;
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       _isLoading = false;
       notifyListeners();
       return null;
@@ -132,7 +133,7 @@ class MedicineProvider extends ChangeNotifier {
 
       return true;
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       notifyListeners();
       return false;
     } catch (e) {
@@ -155,7 +156,7 @@ class MedicineProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       notifyListeners();
       return false;
     } catch (e) {
@@ -163,13 +164,5 @@ class MedicineProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  String _extractError(DioException e) {
-    if (e.response?.data is Map) {
-      final detail = (e.response!.data as Map)['detail'];
-      if (detail is String) return detail;
-    }
-    return 'Something went wrong.';
   }
 }

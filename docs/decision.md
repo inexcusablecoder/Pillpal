@@ -50,7 +50,7 @@
 
 - Single codebase; Material UI; strong notification plugins.
 - Matches problem statement: **mobile application**.
-- Nikhil owns `pillpal_app/`; CR provides design system and flows.
+- Nikhil owns `frontend/pillpal_app/`; CR provides design system and flows.
 
 ---
 

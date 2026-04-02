@@ -26,7 +26,7 @@
 |------|-----|--------|
 | 0.1 | Snehal | Ensure GitHub repo is up to date; add branch protection optional. |
 | 0.2 | Shreyash | Create `backend/` skeleton: `requirements.txt`, `app/main.py`, `.env.example`. |
-| 0.3 | Nikhil | `flutter create pillpal_app` (or restore when ready); add `http`/`dio`. |
+| 0.3 | Nikhil | Flutter app under `frontend/pillpal_app/` (or restore when ready); add `http`/`dio`. |
 | 0.4 | CR | Figma or paper wireframes: Login, Dashboard, Medicine list, Add/Edit, History. |
 
 **Done when:** Empty API runs (`GET /health`), Flutter runs on emulator.
@@ -104,7 +104,7 @@
 
 ### Nikhil (Frontend)
 
-- Owns `pillpal_app/`.
+- Owns `frontend/pillpal_app/`.
 - Steps: 0.3 → 1.5 → 2.2 → 3.3–3.4 → 4.1–4.2.
 - Uses `API_BASE_URL` from Snehal; never commit secrets.
 
@@ -114,7 +114,7 @@
 - Steps: 0.2 → 1.1–1.3 → 2.1 → 3.1–3.2.
 - Ships OpenAPI; keeps `architecture.md` in sync if routes change.
 
-### CR (UI/UX)
+### SHUBHANGI (UI/UX)
 
 - Steps: 0.4 → 1.6 → 2.3 → 3.5 → 4.3.
 - Deliverables: color palette, typography, spacing, key screens in Figma or PDF.

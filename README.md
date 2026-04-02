@@ -16,10 +16,11 @@
 
 | File | Contents |
 |------|----------|
-| [architecture.md](architecture.md) | System design, PostgreSQL schema, API outline, folder layout |
-| [decision.md](decision.md) | Technology choices and rationale |
-| [work-distribution.md](work-distribution.md) | Team roles (Nikhil, Shreyash, CR, Snehal), phased step-by-step plan |
-| [backend-plan.md](backend-plan.md) | Full feature list, backend implementation, work breakdown, **backend phases 1–6** |
+| [docs/architecture.md](docs/architecture.md) | System design, PostgreSQL schema, API outline, folder layout |
+| [docs/decision.md](docs/decision.md) | Technology choices and rationale |
+| [docs/work-distribution.md](docs/work-distribution.md) | Team roles (Nikhil, Shreyash, CR, Snehal), phased step-by-step plan |
+| [docs/backend-plan.md](docs/backend-plan.md) | Full feature list, backend implementation, work breakdown, **backend phases 1–6** |
+| [frontend/README.md](frontend/README.md) | Where the Flutter app lives (`frontend/pillpal_app/`) |
 
 ## Team
 
@@ -32,4 +33,4 @@
 
 ---
 
-*Repository structure: add `backend/` (FastAPI) and `pillpal_app/` (Flutter) as implementation proceeds.*
+**Repository layout:** `backend/` (FastAPI), `frontend/pillpal_app/` (Flutter), `docs/` (architecture and planning). Work in the Flutter project under `frontend/`, not at repo root.

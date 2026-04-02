@@ -24,10 +24,10 @@ class Medicine {
   });
 
   factory Medicine.fromJson(Map<String, dynamic> json) {
-    final timeParts = (json['scheduled_time'] as String).split(':');
+    final timeParts = json['scheduled_time'].toString().split(':');
     return Medicine(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
       name: json['name'] as String,
       dosage: json['dosage'] as String,
       scheduledTime: TimeOfDay(

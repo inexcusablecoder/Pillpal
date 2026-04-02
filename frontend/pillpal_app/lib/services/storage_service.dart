@@ -110,6 +110,12 @@ class StorageService {
     // Future: also clean medicines_$memberId, doseLogs_$memberId, etc.
   }
 
+  /// Clears JWT + cached user only (keeps local vitals/family prefs).
+  Future<void> clearAuth() async {
+    await _prefs.remove(AppConstants.tokenKey);
+    await _prefs.remove(AppConstants.userKey);
+  }
+
   // ── Clear All ──────────────────────────────────────
   Future<void> clearAll() async {
     await _prefs.remove(AppConstants.tokenKey);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../services/storage_service.dart';
+import '../utils/api_error_message.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _user;
@@ -16,13 +17,32 @@ class AuthProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
   String? get error => _error;
 
+  /// Restore session from stored JWT, or stay logged out if missing / invalid.
   Future<void> init() async {
     if (_isInitialized) return;
     _isLoading = true;
     notifyListeners();
 
-    _user = User(id: "1", email: "demo@pillpal.com", displayName: "Demo User", createdAt: DateTime.now());
-    
+    try {
+      final storage = await StorageService.getInstance();
+      final token = storage.getToken();
+      if (token == null || token.isEmpty) {
+        _user = null;
+      } else {
+        final userData = await ApiClient.instance.getMe();
+        _user = User.fromJson(userData);
+        await storage.saveUserJson(userData);
+      }
+    } on DioException {
+      _user = null;
+      final storage = await StorageService.getInstance();
+      await storage.clearAuth();
+    } catch (_) {
+      _user = null;
+      final storage = await StorageService.getInstance();
+      await storage.clearAuth();
+    }
+
     _isInitialized = true;
     _isLoading = false;
     notifyListeners();
@@ -49,7 +69,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -76,7 +96,7 @@ class AuthProvider extends ChangeNotifier {
       // Auto-login after register
       return await login(email, password);
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -99,7 +119,7 @@ class AuthProvider extends ChangeNotifier {
       final storage = await StorageService.getInstance();
       await storage.saveUserJson(data);
     } on DioException catch (e) {
-      _error = _extractError(e);
+      _error = messageFromDio(e);
     } catch (e) {
       _error = 'Failed to update profile.';
     }
@@ -119,17 +139,5 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
-  }
-
-  String _extractError(DioException e) {
-    if (e.response?.data is Map) {
-      final detail = (e.response!.data as Map)['detail'];
-      if (detail is String) return detail;
-    }
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      return 'Cannot connect to server. Check your internet or backend URL.';
-    }
-    return 'Something went wrong. Please try again.';
   }
 }

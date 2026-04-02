@@ -12,6 +12,22 @@
 | API | FastAPI |
 | Database | PostgreSQL |
 
+## Run locally
+
+Terminal 1 — API (from `backend/`):
+
+```bash
+py -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Terminal 2 — app (from `frontend/pillpal_app/`):
+
+```bash
+flutter pub get && flutter run
+```
+
+Configure DB via `backend/.env` (see `backend/.env.example`). Details: [frontend/pillpal_app/README.md](frontend/pillpal_app/README.md).
+
 ## Documentation
 
 | File | Contents |

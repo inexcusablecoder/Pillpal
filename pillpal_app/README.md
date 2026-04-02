@@ -1,6 +1,23 @@
 # pillpal_app
 
-PillPal Medicine Reminder App
+PillPal Medicine Reminder App (Flutter). Talks to the FastAPI backend under `/api/v1`.
+
+## Backend connection
+
+Set the API base URL in `lib/config/constants.dart` (`AppConstants.apiBaseUrl`).
+
+| Where you run the app | Typical `apiBaseUrl` |
+|----------------------|----------------------|
+| Android emulator | `http://10.0.2.2:8000` (default) |
+| Chrome / web | `http://localhost:8000` |
+| Physical phone | `http://<your-PC-LAN-IP>:8000` |
+
+Run the API from the repo root:
+
+```bash
+cd backend
+py -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
 ## Getting Started
 

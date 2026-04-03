@@ -186,4 +186,71 @@ class ApiClient {
     final response = await _dio.post('/dose-logs/$logId/take');
     return response.data as Map<String, dynamic>;
   }
+
+  // ── Twilio Call Schedules ───────────────────────
+
+  Future<Map<String, dynamic>> scheduleCall({
+    required String phone,
+    required List<String> times,
+    required String startDate,
+    required String endDate,
+    required String callType,
+    String? message,
+    String? audioUrl,
+  }) async {
+    final response = await _dio.post('/calls/schedule', data: {
+      'phone': phone,
+      'times': times,
+      'start_date': startDate,
+      'end_date': endDate,
+      'call_type': callType,
+      'message': message,
+      'audio_url': audioUrl,
+    });
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateCallSchedule({
+    required int id,
+    required String phone,
+    required List<String> times,
+    required String startDate,
+    required String endDate,
+    required String callType,
+    String? message,
+    String? audioUrl,
+  }) async {
+    final response = await _dio.put('/calls/schedule/$id', data: {
+      'phone': phone,
+      'times': times,
+      'start_date': startDate,
+      'end_date': endDate,
+      'call_type': callType,
+      'message': message,
+      'audio_url': audioUrl,
+    });
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getCallSchedules() async {
+    final response = await _dio.get('/calls/schedules');
+    return response.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> deleteCallSchedule(int id) async {
+    final response = await _dio.delete('/calls/schedule/$id');
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<String> sendChatMessage(List<Map<String, String>> messages) async {
+    final response = await _dio.post('/ai/chat', data: {
+      'messages': messages,
+    });
+    return response.data['response'] as String;
+  }
+
+  Future<String> getLastPhone() async {
+    final response = await _dio.get('/calls/last-phone');
+    return response.data['phone'] as String;
+  }
 }

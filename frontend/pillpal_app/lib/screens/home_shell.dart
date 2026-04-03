@@ -7,6 +7,7 @@ import '../screens/history/history_screen.dart';
 import '../screens/medicines/medicines_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/vitals/vitals_screen.dart';
+import '../widgets/ai_chat_widget.dart';
 import '../widgets/app_nav_bar.dart';
 
 class HomeShell extends StatefulWidget {
@@ -45,6 +46,7 @@ class _HomeShellState extends State<HomeShell> {
         index: _currentIndex,
         children: _screens,
       ),
+      floatingActionButton: AiChatWidget(),
       bottomNavigationBar: AppNavBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

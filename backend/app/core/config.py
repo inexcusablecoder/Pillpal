@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     dose_grace_minutes: int = 60
     api_v1_prefix: str = "/api/v1"
+    
+    # Twilio (Voice Calls)
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_number: str | None = None
+    groq_api_key: str | None = None
 
     # Comma-separated origins, or "*" for all. Wildcard disables credentials (browser CORS rules).
     cors_origins: str = "*"

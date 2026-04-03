@@ -12,6 +12,8 @@ import '../../services/web_reminder.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/gradient_button.dart';
 import 'add_family_member_modal.dart';
+import 'call_schedule_modal.dart';
+import '../../services/api_client.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,6 +27,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   String? _phoneFieldUserId;
+  List<dynamic> _callSchedules = [];
+  bool _isLoadingSchedules = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCallSchedules();
+  }
+
+  Future<void> _loadCallSchedules() async {
+    setState(() => _isLoadingSchedules = true);
+    try {
+      final data = await ApiClient.instance.getCallSchedules();
+      setState(() => _callSchedules = data);
+    } catch (e) {
+      debugPrint('Error loading call schedules: $e');
+    } finally {
+      setState(() => _isLoadingSchedules = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -254,6 +276,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
+              // ── PREMIUM PHONE CALLS ────────────────────
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.phone_in_talk_rounded, color: AppColors.success.withAlpha(220)),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Premium Call Reminders',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Get an actual automated phone call (via Twilio) telling you to take your medications.',
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          final refreshed = await showModalBottomSheet<bool>(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const CallScheduleModal(),
+                          );
+                          if (refreshed == true) _loadCallSchedules();
+                        },
+                        icon: const Icon(Icons.settings_phone_rounded, size: 18),
+                        label: const Text('Configure Calls'),
+                      ),
+                    ),
+                    if (_callSchedules.isNotEmpty) ...[
+                      const Divider(color: AppColors.cardBorder, height: 24),
+                      const Text(
+                        'Active Schedules',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 12),
+                      ..._callSchedules.map((s) => _buildScheduleItem(s)),
+                    ] else if (_isLoadingSchedules)
+                      const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(strokeWidth: 2))),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 500.ms, delay: 380.ms).slideY(begin: 0.1),
+
+              const SizedBox(height: 24),
+
               // ── MY FAMILY SECTION ──────────────────────
               _buildFamilySection(family),
 
@@ -282,6 +358,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleItem(Map<String, dynamic> s) {
+    bool isText = s['call_type'] == 'text';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.background.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isText ? Icons.record_voice_over_rounded : Icons.audiotrack_rounded,
+              size: 20,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s['phone'] ?? '',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                  Text(
+                    '${isText ? "TTS" : "Audio"} | ${(s['times'] as List).join(", ")}',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
+              onPressed: () async {
+                final refreshed = await showModalBottomSheet<bool>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => CallScheduleModal(editSchedule: s),
+                );
+                if (refreshed == true) _loadCallSchedules();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.danger),
+              onPressed: () => _confirmDeleteSchedule(s['id']),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteSchedule(int id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Schedule?'),
+        content: const Text('This will stop these automated calls immediately.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ApiClient.instance.deleteCallSchedule(id);
+              _loadCallSchedules();
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

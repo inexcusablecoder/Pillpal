@@ -7,6 +7,7 @@ import 'providers/dose_log_provider.dart';
 import 'providers/family_provider.dart';
 import 'providers/medicine_provider.dart';
 import 'providers/vitals_provider.dart';
+import 'providers/localization_provider.dart';
 import 'screens/auth/auth_screen.dart';
 import 'screens/home_shell.dart';
 import 'services/api_client.dart';
@@ -38,16 +39,22 @@ class PillPalApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => LocalizationProvider()),
         ChangeNotifierProvider(create: (_) => MedicineProvider()),
         ChangeNotifierProvider(create: (_) => DoseLogProvider()),
         ChangeNotifierProvider(create: (_) => VitalsProvider()),
         ChangeNotifierProvider(create: (_) => FamilyProvider()),
       ],
-      child: MaterialApp(
-        title: 'PillPal',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const AppRoot(),
+      child: Consumer<LocalizationProvider>(
+        builder: (context, loc, child) {
+          return MaterialApp(
+            title: 'PillPal',
+            debugShowCheckedModeBanner: false,
+            // Fallback to lightTheme if getTheme is not implemented
+            theme: AppTheme.lightTheme,
+            home: const AppRoot(),
+          );
+        },
       ),
     );
   }
@@ -71,6 +78,7 @@ class _AppRootState extends State<AppRoot> {
     // Defer so providers don't notify during the first build (web / strict mode).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      context.read<LocalizationProvider>().init();
       context.read<AuthProvider>().init();
       context.read<FamilyProvider>().init();
     });

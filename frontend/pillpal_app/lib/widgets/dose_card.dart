@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-import '../config/theme.dart';
-import '../models/dose_log.dart';
 import 'glass_card.dart';
 import 'status_chip.dart';
+import 'package:provider/provider.dart';
+import '../providers/localization_provider.dart';
 
 class DoseCard extends StatelessWidget {
   final DoseLog dose;
@@ -69,7 +68,7 @@ class DoseCard extends StatelessWidget {
           ),
           // Status / Action
           if (dose.isPending)
-            _buildTakeButton()
+            _buildTakeButton(context)
           else
             StatusChip(status: dose.status),
         ],
@@ -77,7 +76,8 @@ class DoseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTakeButton() {
+  Widget _buildTakeButton(BuildContext context) {
+    final loc = context.watch<LocalizationProvider>();
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -107,9 +107,9 @@ class DoseCard extends StatelessWidget {
                       strokeWidth: 2,
                     ),
                   )
-                : const Text(
-                    'Take',
-                    style: TextStyle(
+                : Text(
+                    loc.translate('take_action'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

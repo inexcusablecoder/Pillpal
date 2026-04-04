@@ -135,6 +135,15 @@ class StorageService {
     return _prefs.getStringList(_medicineCatalogKey);
   }
 
+  // ── Language ──────────────────────────────────────
+  Future<void> saveLanguage(String lang) async {
+    await _prefs.setString('app_language', lang);
+  }
+
+  String? getLanguage() {
+    return _prefs.getString('app_language');
+  }
+
   // ── Clear All ──────────────────────────────────────
   Future<void> clearAll() async {
     await _prefs.remove(AppConstants.tokenKey);
@@ -142,5 +151,6 @@ class StorageService {
     await _prefs.remove('vitals_list');
     await _prefs.remove('family_members');
     await _prefs.remove('active_member_id');
+    await _prefs.remove('app_language');
   }
 }

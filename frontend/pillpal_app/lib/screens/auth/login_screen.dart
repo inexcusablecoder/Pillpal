@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
-import '../../providers/auth_provider.dart';
 import '../../widgets/gradient_button.dart';
+import '../../providers/localization_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onSwitchToRegister;
@@ -47,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final loc = context.watch<LocalizationProvider>();
 
     return Scaffold(
       body: Container(
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
                 // Login button
                 GradientButton(
-                  text: 'Sign In',
+                  text: loc.translate('sign_in'),
                   isLoading: auth.isLoading,
                   onPressed: _login,
                   icon: Icons.login_rounded,
@@ -75,15 +75,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Don't have an account? ",
-                      style: TextStyle(color: AppColors.textSecondary),
+                    Text(
+                      "${loc.translate('dont_have_account')} ",
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
                     GestureDetector(
                       onTap: widget.onSwitchToRegister,
-                      child: const Text(
-                        'Sign Up',
-                        style: TextStyle(
+                      child: Text(
+                        loc.translate('create_account'),
+                        style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
@@ -130,9 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your personal medicine companion',
-          style: TextStyle(
+        Text(
+          loc.translate('app_subtitle'),
+          style: const TextStyle(
             fontSize: 15,
             color: AppColors.textSecondary,
           ),
@@ -150,9 +150,9 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
+            decoration: InputDecoration(
+              labelText: loc.translate('email_label'),
+              prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textMuted),
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Email is required';
@@ -166,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: _obscurePassword,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: loc.translate('password_label'),
               prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textMuted),
               suffixIcon: IconButton(
                 icon: Icon(

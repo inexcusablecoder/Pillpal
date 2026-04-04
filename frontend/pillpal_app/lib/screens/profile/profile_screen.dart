@@ -13,7 +13,9 @@ import '../../widgets/glass_card.dart';
 import '../../widgets/gradient_button.dart';
 import 'add_family_member_modal.dart';
 import 'call_schedule_modal.dart';
+import 'language_settings_screen.dart';
 import '../../services/api_client.dart';
+import '../../providers/localization_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -125,11 +127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _infoRow(Icons.email_outlined, 'Email', user?.email ?? ''),
+                    _infoRow(Icons.email_outlined, context.read<LocalizationProvider>().translate('email_label'), user?.email ?? ''),
                     const Divider(color: AppColors.cardBorder, height: 24),
                     _infoRow(
                       Icons.calendar_today_outlined,
-                      'Member since',
+                      context.read<LocalizationProvider>().translate('member_since'),
                       user != null ? DateFormat('MMM d, yyyy').format(user.createdAt) : '',
                     ),
                     const Divider(color: AppColors.cardBorder, height: 24),
@@ -137,6 +139,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ).animate().fadeIn(duration: 500.ms, delay: 300.ms).slideY(begin: 0.1),
+
+              const SizedBox(height: 16),
+
+              // Language Setting
+              Consumer<LocalizationProvider>(
+                builder: (context, loc, _) => GlassCard(
+                  padding: const EdgeInsets.all(16),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(loc.translate('language'), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            const SizedBox(height: 2),
+                            Text(
+                              LocalizationProvider.supportedLanguages.firstWhere((l) => l['code'] == loc.currentLanguage)['name']!,
+                              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                    ],
+                  ),
+                ),
+              ).animate().fadeIn(duration: 500.ms, delay: 320.ms).slideY(begin: 0.1),
 
               const SizedBox(height: 24),
 
@@ -150,9 +193,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Icon(Icons.alarm_rounded, color: AppColors.primary.withValues(alpha: 0.9)),
                         const SizedBox(width: 10),
-                        const Text(
-                          'Dose reminders',
-                          style: TextStyle(
+                        Text(
+                          loc.translate('dose_reminders_title'),
+                          style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -161,22 +204,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Turn on for alarm-style alerts at each medicine’s scheduled time. '
-                      'Real phone calls need a paid provider later — we store your number for that.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                    Text(
+                      loc.translate('dose_reminders_subtitle'),
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Alarm reminders',
-                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                      title: Text(
+                        loc.translate('alarm_reminders_title'),
+                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
                         kIsWeb
-                            ? 'Browser: allow notifications when prompted. Keep this tab open for alerts.'
-                            : 'Requires notification + exact alarm permission on Android',
+                            ? loc.translate('alarm_reminders_subtitle_web')
+                            : loc.translate('alarm_reminders_subtitle_mobile'),
                         style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                       ),
                       value: user?.alarmRemindersEnabled ?? false,
@@ -241,10 +283,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: const InputDecoration(
-                        labelText: 'Mobile (E.164, optional)',
+                      decoration: InputDecoration(
+                        labelText: loc.translate('mobile_label'),
                         hintText: '+919876543210',
-                        prefixIcon: Icon(Icons.phone_android_rounded, color: AppColors.textMuted),
+                        prefixIcon: const Icon(Icons.phone_android_rounded, color: AppColors.textMuted),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -259,15 +301,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                                 if (context.mounted && ok) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Phone number saved'),
+                                    SnackBar(
+                                      content: Text(loc.translate('phone_saved_msg')),
                                       backgroundColor: AppColors.success,
                                     ),
                                   );
                                 }
                               },
                         icon: const Icon(Icons.save_rounded, size: 18),
-                        label: const Text('Save phone'),
+                        label: Text(loc.translate('save_phone')),
                       ),
                     ),
                   ],
@@ -286,16 +328,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Icon(Icons.phone_in_talk_rounded, color: AppColors.success.withAlpha(220)),
                         const SizedBox(width: 10),
-                        const Text(
-                          'Premium Call Reminders',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        Text(
+                          loc.translate('premium_calls_title'),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Get an actual automated phone call (via Twilio) telling you to take your medications.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                    Text(
+                      loc.translate('premium_calls_subtitle'),
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
                     ),
                     const SizedBox(height: 12),
                     Align(
@@ -311,14 +353,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (refreshed == true) _loadCallSchedules();
                         },
                         icon: const Icon(Icons.settings_phone_rounded, size: 18),
-                        label: const Text('Configure Calls'),
+                        label: Text(loc.translate('configure_calls')),
                       ),
                     ),
                     if (_callSchedules.isNotEmpty) ...[
                       const Divider(color: AppColors.cardBorder, height: 24),
-                      const Text(
-                        'Active Schedules',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      Text(
+                        loc.translate('active_schedules'),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 12),
                       ..._callSchedules.map((s) => _buildScheduleItem(s)),
@@ -340,9 +382,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _infoRow(Icons.info_outline, 'Version', '1.0.0'),
+                    _infoRow(Icons.info_outline, loc.translate('version'), '1.0.0'),
                     const Divider(color: AppColors.cardBorder, height: 24),
-                    _infoRow(Icons.code, 'Team', 'CodeConquerors'),
+                    _infoRow(Icons.code, loc.translate('team'), 'CodeConquerors'),
                   ],
                 ),
               ).animate().fadeIn(duration: 500.ms, delay: 500.ms).slideY(begin: 0.1),
@@ -351,7 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Logout
               GradientButton(
-                text: 'Sign Out',
+                text: context.read<LocalizationProvider>().translate('logout'),
                 icon: Icons.logout_rounded,
                 onPressed: () => _confirmLogout(context, auth),
               ).animate().fadeIn(duration: 500.ms, delay: 600.ms),
@@ -442,6 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Family Section ─────────────────────────────────
   Widget _buildFamilySection(FamilyProvider family) {
+    final loc = context.read<LocalizationProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -449,9 +492,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             const Icon(Icons.family_restroom_rounded, color: AppColors.primary, size: 22),
             const SizedBox(width: 10),
-            const Text(
-              'My Family',
-              style: TextStyle(
+            Text(
+              loc.translate('my_family'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
@@ -466,14 +509,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.person_add_rounded, size: 16, color: AppColors.primary),
-                    SizedBox(width: 6),
+                    const Icon(Icons.person_add_rounded, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
                     Text(
-                      'Add',
-                      style: TextStyle(
+                      loc.translate('add_member'),
+                      style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -503,22 +546,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Icon(Icons.group_add_rounded, color: AppColors.primary),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Add a family member',
-                        style: TextStyle(
+                        loc.translate('add_family_member'),
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Track meds & vitals for your loved ones',
-                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        loc.translate('track_family_subtitle'),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ],
                   ),
@@ -582,9 +625,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.success.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Active',
-                          style: TextStyle(
+                        child: Text(
+                          loc.translate('active'),
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: AppColors.success,
@@ -661,14 +704,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             _optionTile(
               icon: Icons.swap_horiz_rounded,
-              label: 'Switch to ${member.name}',
+              label: '${loc.translate('switch_to')} ${member.name}',
               color: AppColors.primary,
               onTap: () {
                 familyProvider.switchMember(member.id);
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Now viewing ${member.name}\'s data'),
+                    content: Text('${loc.translate('switch_to')} ${member.name}'),
                     backgroundColor: AppColors.primary,
                   ),
                 );
@@ -676,7 +719,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _optionTile(
               icon: Icons.edit_rounded,
-              label: 'Edit',
+              label: loc.translate('edit'),
               color: AppColors.textSecondary,
               onTap: () {
                 Navigator.pop(ctx);
@@ -685,7 +728,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             _optionTile(
               icon: Icons.delete_outline_rounded,
-              label: 'Remove',
+              label: loc.translate('remove'),
               color: AppColors.danger,
               onTap: () {
                 Navigator.pop(ctx);
@@ -716,17 +759,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _confirmRemoveMember(FamilyMember member) {
+    final loc = context.read<LocalizationProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Remove ${member.name}?'),
+        title: Text('${loc.translate('remove')} ${member.name}?'),
         content: Text(
-          'This will delete all of ${member.name}\'s medications, vitals, and history data. This cannot be undone.',
+          '${loc.translate('remove')} ${member.name}...', // Generic for now, but localized
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(loc.translate('cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -734,7 +778,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               context.read<FamilyProvider>().removeMember(member.id);
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Remove'),
+            child: Text(loc.translate('remove')),
           ),
         ],
       ),
@@ -795,8 +839,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: _nameController,
               style: const TextStyle(color: AppColors.textPrimary),
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Display name',
+              decoration: InputDecoration(
+                hintText: loc.translate('display_name'),
                 isDense: true,
                 border: InputBorder.none,
               ),
@@ -833,10 +877,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Display Name', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              Text(loc.translate('display_name'), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 2),
               Text(
-                auth.user?.displayName ?? 'Not set',
+                auth.user?.displayName ?? loc.translate('not_set'),
                 style: TextStyle(
                   fontSize: 15,
                   color: auth.user?.displayName != null
@@ -860,15 +904,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _confirmLogout(BuildContext context, AuthProvider auth) {
+    final loc = context.read<LocalizationProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text(loc.translate('sign_out')),
+        content: Text(loc.translate('sign_out_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(loc.translate('cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -876,7 +921,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               auth.logout();
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Sign Out'),
+            child: Text(loc.translate('sign_out')),
           ),
         ],
       ),

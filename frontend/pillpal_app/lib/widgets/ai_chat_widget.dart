@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/api_client.dart';
+import 'package:provider/provider.dart';
+import '../providers/localization_provider.dart';
 
 class AiChatWidget extends StatefulWidget {
   const AiChatWidget({super.key});
@@ -19,9 +21,17 @@ class _AiChatWidgetState extends State<AiChatWidget> {
   @override
   void initState() {
     super.initState();
-    _messages.add({
-      'role': 'assistant',
-      'content': 'Hello! I am your PillPal assistant. How can I help you today?'
+    // Use a post frame callback to access provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final loc = context.read<LocalizationProvider>();
+        setState(() {
+          _messages.add({
+            'role': 'assistant',
+            'content': loc.translate('chat_welcome_msg')
+          });
+        });
+      }
     });
   }
 
@@ -118,16 +128,16 @@ class _AiChatWidgetState extends State<AiChatWidget> {
         children: [
           _buildBotIcon(size: 32, iconSize: 18),
           const SizedBox(width: 12),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'PillPal AI',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                context.read<LocalizationProvider>().translate('chat_assistant'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                'Online',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                context.read<LocalizationProvider>().translate('online'),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -213,7 +223,7 @@ class _AiChatWidgetState extends State<AiChatWidget> {
               controller: _controller,
               onSubmitted: (_) => _sendMessage(),
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: context.read<LocalizationProvider>().translate('type_message'),
                 fillColor: AppColors.surfaceLight,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),

@@ -7,6 +7,7 @@ import '../../models/dose_log.dart';
 import '../../providers/dose_log_provider.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/status_chip.dart';
+import '../../providers/localization_provider.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -35,6 +36,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final doses = context.watch<DoseLogProvider>();
+    final loc = context.watch<LocalizationProvider>();
 
     // Group logs by date
     final grouped = <String, List<DoseLog>>{};
@@ -59,9 +61,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'History',
-                      style: TextStyle(
+                    Text(
+                      loc.translate('history_title'),
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -69,7 +71,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ).animate().fadeIn(duration: 500.ms),
                     const SizedBox(height: 4),
                     Text(
-                      'Your dose history over the last $_selectedDays days',
+                      loc.getWithParams('history_subtitle', {'days': '$_selectedDays'}),
                       style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
                     ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
                     const SizedBox(height: 16),
@@ -132,7 +134,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     children: [
                       Icon(Icons.history, size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
-                      const Text('No history yet', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                      Text(loc.translate('no_history_title'), style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
                     ],
                   ),
                 ).animate().fadeIn(duration: 500.ms, delay: 300.ms),
@@ -194,11 +196,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryItem('Adherence', '${adherence.round()}%', AppColors.primary),
+          _summaryItem(loc.translate('adherence'), '${adherence.round()}%', AppColors.primary),
           Container(width: 1, height: 36, color: AppColors.cardBorder),
-          _summaryItem('Taken', '$taken', AppColors.success),
+          _summaryItem(loc.translate('taken'), '$taken', AppColors.success),
           Container(width: 1, height: 36, color: AppColors.cardBorder),
-          _summaryItem('Missed', '$missed', AppColors.danger),
+          _summaryItem(loc.translate('missed'), '$missed', AppColors.danger),
         ],
       ),
     );

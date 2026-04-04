@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-import '../config/theme.dart';
-import '../models/medicine.dart';
 import 'glass_card.dart';
+import 'package:provider/provider.dart';
+import '../providers/localization_provider.dart';
 
 class MedicineCard extends StatelessWidget {
   final Medicine medicine;
@@ -19,6 +18,7 @@ class MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationProvider>();
     return GlassCard(
       onTap: onTap,
       padding: const EdgeInsets.all(16),
@@ -88,7 +88,7 @@ class MedicineCard extends StatelessWidget {
               _infoChip(Icons.repeat, medicine.frequency),
               if (medicine.pillCount != null) ...[
                 const SizedBox(width: 8),
-                _infoChip(Icons.inventory_2_outlined, '${medicine.pillCount} pills'),
+                _infoChip(Icons.inventory_2_outlined, '${medicine.pillCount} ${loc.translate('pills')}'),
               ],
               const Spacer(),
               InkWell(

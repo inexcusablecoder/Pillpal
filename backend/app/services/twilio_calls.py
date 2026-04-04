@@ -2,15 +2,25 @@ import re
 import time
 import threading
 import schedule
+import logging
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
+import uuid
 
 from twilio.rest import Client
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, validator
-from sqlalchemy import create_engine, Column, Integer, String, text
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, select, update, delete, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker, Mapped, mapped_column, relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import UUID
+
 from app.core.config import settings
+from app.core.database import Base, get_db as get_async_db
+from app.core.deps import get_current_user
+from app.models.user import User
+
+logger = logging.getLogger("pillpal.twilio")
 
 # Use router instead of app = FastAPI()
 router = APIRouter(tags=["twilio_calls"])
@@ -21,48 +31,82 @@ router = APIRouter(tags=["twilio_calls"])
 DEFAULT_AUDIO_URL = "https://raw.githubusercontent.com/pranav16-king/apk/main/WhatsApp%20Audio%202026-03-20%20at%2023.41.07.mp3"
 
 # ==============================
-# 🗄️ DB (PostgreSQL)
+# 🗄️ SYNC DB FOR SCHEDULER
 # ==============================
-DATABASE_URL = settings.database_url
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
+# The scheduler runs in a background thread and needs a sync connection
+sync_engine = create_engine(settings.database_url)
+SessionLocal = sessionmaker(bind=sync_engine)
 
 # ==============================
-# 📦 MODEL
+# 📦 MODELS
 # ==============================
 class CallSchedule(Base):
     __tablename__ = "call_schedules"
 
-    id = Column(Integer, primary_key=True)
-    phone = Column(String)
-    times = Column(String)
-    message = Column(String)
-    audio_url = Column(String)
-    call_type = Column(String, default="audio") # "text" or "audio"
-    start_date = Column(String)
-    end_date = Column(String)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    phone: Mapped[str] = mapped_column(String(32))
+    times: Mapped[str] = mapped_column(String(255)) # comma separated
+    message: Mapped[Optional[str]] = mapped_column(String(500))
+    audio_url: Mapped[Optional[str]] = mapped_column(String(500))
+    call_type: Mapped[str] = mapped_column(String(32), default="audio") # "text" or "audio"
+    start_date: Mapped[str] = mapped_column(String(32))
+    end_date: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user: Mapped["User"] = relationship("User")
+
+class CallHistory(Base):
+    __tablename__ = "call_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    schedule_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("call_schedules.id", ondelete="SET NULL"))
+    phone: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(32)) # "initiated", "failed"
+    call_type: Mapped[str] = mapped_column(String(32))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    error_message: Mapped[Optional[str]] = mapped_column(String(500))
 
 # ==============================
 # 🛠️ AUTO FIX DB (IMPORTANT)
 # ==============================
 def fix_db_schema():
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    # Base.metadata.create_all(bind=sync_engine) # This can be handled by alembic, but for now:
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(sync_engine)
+        
+        # 1. Create missing tables
+        if "call_history" not in inspector.get_table_names():
+            Base.metadata.create_all(bind=sync_engine)
+            logger.info("Created missing twilio tables")
+            
+        # 2. Fix missing columns in call_schedules
+        cols = [c["name"] for c in inspector.get_columns("call_schedules")]
+        with sync_engine.connect() as conn:
+            if "user_id" not in cols:
+                # Assuming UUID for existing users, but easier to just add it
+                # For safety in dev, we use a simple migration
+                conn.execute(text('ALTER TABLE call_schedules ADD COLUMN user_id UUID REFERENCES users(id)'))
+                logger.info("Added user_id to call_schedules")
+            if "created_at" not in cols:
+                conn.execute(text('ALTER TABLE call_schedules ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()'))
+                logger.info("Added created_at to call_schedules")
 
-    # ensure columns exist
-    for col in ["start_date", "end_date", "audio_url", "call_type"]:
-        try:
-            db.execute(text(f"ALTER TABLE call_schedules ADD COLUMN {col} TEXT"))
-        except Exception:
-            pass
+            # 3. Fix missing columns in users table
+            user_cols = [c["name"] for c in inspector.get_columns("users")]
+            if "language" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(10) DEFAULT 'en'"))
+                logger.info("Added language column to users table")
 
-    db.commit()
-    db.close()
+            conn.commit()
+
+    except Exception as e:
+        logger.error(f"Error checking/fixing twilio schema: {e}")
 
 # ==============================
-# 📥 SCHEMA
+# 📥 SCHEMAS
 # ==============================
 class CallCreate(BaseModel):
     phone: str
@@ -73,16 +117,7 @@ class CallCreate(BaseModel):
     message: Optional[str] = "Please take your medicine on time"
     audio_url: Optional[str] = None
 
-    @validator("times")
-    def validate_times(cls, v):
-        if not v:
-            raise ValueError("At least one time is required")
-        if len(v) > 3:
-            raise ValueError("Max 3 times allowed")
-        for t in v:
-            if not re.match(r"^\d{2}:\d{2}$", t):
-                raise ValueError(f"Invalid time format: {t}. Expected HH:MM")
-        return v
+    model_config = ConfigDict(from_attributes=True)
 
 # ==============================
 # 🛠️ HELPERS
@@ -92,44 +127,68 @@ def get_twilio_client():
         return Client(settings.twilio_account_sid, settings.twilio_auth_token)
     return None
 
-def format_number(number):
+def format_number(number: str) -> Optional[str]:
     if not number: return None
     number = number.strip()
+    # If 10 digits, assume India default +91
     if re.fullmatch(r"\d{10}", number):
         return "+91" + number
+    # If starts with +, it's already full format
     if number.startswith("+"):
         return number
+    # If it starts with digits but has more than 10, maybe it's country code without +
+    if re.fullmatch(r"\d{11,15}", number):
+        return "+" + number
     return None
 
 # ==============================
 # 🔊 CALL ENGINE (Text vs Voice Choice)
 # ==============================
-def make_call(phone, message, audio_url, call_type):
+def make_call(user_id, phone, message, audio_url, call_type, schedule_id=None):
+    db = SessionLocal()
+    history_entry = CallHistory(
+        user_id=user_id,
+        schedule_id=schedule_id,
+        phone=phone,
+        call_type=call_type,
+        status="initiated"
+    )
     try:
         client = get_twilio_client()
         if not client:
-            print("❌ Twilio client NOT configured in Settings.")
+            logger.error("❌ Twilio client NOT configured.")
+            history_entry.status = "failed"
+            history_entry.error_message = "Twilio client NOT configured"
+            db.add(history_entry)
+            db.commit()
             return
 
         if call_type == "text":
             twiml = f"<Response><Say voice='alice'>{message}</Say></Response>"
-            print(f"📞 Calling {phone} (Text-to-Speech: {message})")
+            logger.info(f"📞 Calling {phone} (Text-to-Speech)")
         else:
-            # Use explicitly passed audio_url or the default one
             final_audio = audio_url if audio_url else DEFAULT_AUDIO_URL
             twiml = f"<Response><Play>{final_audio}</Play></Response>"
-            print(f"📞 Calling {phone} (Audio URL: {final_audio})")
+            logger.info(f"📞 Calling {phone} (Audio URL)")
 
         client.calls.create(
             twiml=twiml,
             to=phone,
             from_=settings.twilio_number
         )
-
-        print(f"✅ Call initiated successfully to {phone}")
+        logger.info(f"✅ Call initiated successfully to {phone}")
+        history_entry.status = "initiated"
+        db.add(history_entry)
+        db.commit()
 
     except Exception as e:
-        print("❌ Twilio Call error:", e)
+        logger.error(f"❌ Twilio Call error: {e}")
+        history_entry.status = "failed"
+        history_entry.error_message = str(e)
+        db.add(history_entry)
+        db.commit()
+    finally:
+        db.close()
 
 # ==============================
 # ⏰ SCHEDULER
@@ -143,7 +202,11 @@ def load_jobs():
         today = date.today()
 
         for s in data:
+            if not s.user_id:
+                logger.warning(f"⚠️ Skipping record {s.id}: No user_id assigned.")
+                continue
             try:
+                # Ensure dates are parsed correctly
                 start = datetime.strptime(s.start_date, "%Y-%m-%d").date()
                 end = datetime.strptime(s.end_date, "%Y-%m-%d").date()
 
@@ -151,58 +214,59 @@ def load_jobs():
                     continue
 
                 for t in s.times.split(","):
-                    schedule.every().day.at(t).do(
-                        make_call,
-                        phone=s.phone,
-                        message=s.message,
-                        audio_url=s.audio_url,
-                        call_type=s.call_type
-                    )
-
-                    print(f"⏰ Scheduled {s.phone} at {t} (Type: {s.call_type})")
+                    try:
+                        schedule.every().day.at(t).do(
+                            make_call,
+                            user_id=s.user_id,
+                            phone=s.phone,
+                            message=s.message,
+                            audio_url=s.audio_url,
+                            call_type=s.call_type,
+                            schedule_id=s.id
+                        )
+                        logger.info(f"⏰ Scheduled {s.phone} at {t}")
+                    except Exception as te:
+                        logger.warning(f"Invalid time in record {s.id}: {t} -> {te}")
 
             except Exception as e:
-                print("⚠️ Skipping invalid record in scheduler load:", e)
+                logger.warning(f"⚠️ Skipping invalid record {s.id}: {e}")
 
         db.close()
-
     except Exception as e:
-        print("❌ Scheduler load error:", e)
+        logger.error(f"❌ Scheduler load error: {e}")
 
 def run_scheduler():
     while True:
-        schedule.run_pending()
+        try:
+            schedule.run_pending()
+        except Exception as e:
+            logger.error(f"Scheduler loop error: {e}")
         time.sleep(1)
 
 # ==============================
 # 🚀 STARTUP INIT
 # ==============================
 def startup_twilio_service():
-    print("🚀 Initializing Twilio Service (v3 Text vs Music Fixed)...")
+    logger.info("🚀 Initializing Twilio Service with Multi-user support...")
     fix_db_schema()
     load_jobs()
     threading.Thread(target=run_scheduler, daemon=True).start()
 
 # ==============================
-# 📦 DB DEP
-# ==============================
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# ==============================
 # ➕ CREATE / POST
 # ==============================
 @router.post("/schedule")
-def create(data: CallCreate, db: Session = Depends(get_db)):
+async def create(
+    data: CallCreate, 
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
     phone = format_number(data.phone)
     if not phone:
         raise HTTPException(400, "Invalid phone number format")
 
     obj = CallSchedule(
+        user_id=current_user.id,
         phone=phone,
         times=",".join(data.times),
         message=data.message,
@@ -213,17 +277,22 @@ def create(data: CallCreate, db: Session = Depends(get_db)):
     )
 
     db.add(obj)
-    db.commit()
+    await db.commit() # Ensure persisted before scheduler reloads
+    # Trigger job reload (syncly or via flag)
     load_jobs()
     return {"msg": "✅ Call scheduled successfully"}
 
 # ==============================
 # 📋 LIST / GET
 # ==============================
-@router.get("/schedules", response_model=List[dict])
-def get_all(db: Session = Depends(get_db)):
-    items = db.query(CallSchedule).all()
-    # return as list of dicts for simple frontend consumption
+@router.get("/schedules")
+async def get_all(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(CallSchedule).where(CallSchedule.user_id == current_user.id))
+    items = result.scalars().all()
+    
     return [
         {
             "id": i.id,
@@ -237,20 +306,50 @@ def get_all(db: Session = Depends(get_db)):
         } for i in items
     ]
 
+@router.get("/history")
+async def get_history(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(CallHistory).where(CallHistory.user_id == current_user.id).order_by(CallHistory.timestamp.desc()))
+    items = result.scalars().all()
+    
+    return [
+        {
+            "id": i.id,
+            "phone": i.phone,
+            "status": i.status,
+            "call_type": i.call_type,
+            "timestamp": i.timestamp.isoformat(),
+            "error_message": i.error_message
+        } for i in items
+    ]
+
 # ==============================
 # 📱 LAST PHONE
 # ==============================
 @router.get("/last-phone")
-def last_phone(db: Session = Depends(get_db)):
-    last = db.query(CallSchedule).order_by(CallSchedule.id.desc()).first()
+async def last_phone(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(CallSchedule).where(CallSchedule.user_id == current_user.id).order_by(CallSchedule.id.desc()))
+    last = result.scalars().first()
     return {"phone": last.phone if last else ""}
 
 # ==============================
 # ✏️ UPDATE / PUT
 # ==============================
 @router.put("/schedule/{idx}")
-def update(idx: int, data: CallCreate, db: Session = Depends(get_db)):
-    item = db.query(CallSchedule).filter(CallSchedule.id == idx).first()
+async def update_schedule(
+    idx: int, 
+    data: CallCreate, 
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(CallSchedule).where((CallSchedule.id == idx) & (CallSchedule.user_id == current_user.id)))
+    item = result.scalar_one_or_none()
+    
     if not item:
         raise HTTPException(404, "Schedule not found")
 
@@ -266,7 +365,7 @@ def update(idx: int, data: CallCreate, db: Session = Depends(get_db)):
     item.start_date = data.start_date
     item.end_date = data.end_date
 
-    db.commit()
+    await db.commit() # Ensure persisted before scheduler reloads
     load_jobs()
     return {"msg": "✅ Schedule updated successfully"}
 
@@ -274,12 +373,18 @@ def update(idx: int, data: CallCreate, db: Session = Depends(get_db)):
 # ❌ DELETE
 # ==============================
 @router.delete("/schedule/{idx}")
-def delete(idx: int, db: Session = Depends(get_db)):
-    item = db.query(CallSchedule).filter(CallSchedule.id == idx).first()
+async def delete_schedule(
+    idx: int, 
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.execute(select(CallSchedule).where((CallSchedule.id == idx) & (CallSchedule.user_id == current_user.id)))
+    item = result.scalar_one_or_none()
+    
     if not item:
         raise HTTPException(404, "Not found")
 
-    db.delete(item)
-    db.commit()
+    await db.delete(item)
+    await db.flush()
     load_jobs()
     return {"msg": "✅ Removed"}

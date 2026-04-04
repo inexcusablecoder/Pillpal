@@ -8,6 +8,7 @@ import '../../providers/medicine_provider.dart';
 import '../../services/web_reminder.dart';
 import '../../widgets/medicine_card.dart';
 import 'add_medicine_screen.dart';
+import '../../providers/localization_provider.dart';
 
 class MedicinesScreen extends StatefulWidget {
   const MedicinesScreen({super.key});
@@ -28,6 +29,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
   @override
   Widget build(BuildContext context) {
     final meds = context.watch<MedicineProvider>();
+    final loc = context.watch<LocalizationProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,9 +48,9 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'My Medicines',
-                          style: TextStyle(
+                        Text(
+                          loc.translate('my_medicines'),
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -56,7 +58,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${meds.medicines.length} medicine${meds.medicines.length == 1 ? '' : 's'}',
+                          '${meds.medicines.length} ${loc.translate('medicine_plural')}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: AppColors.textMuted,
@@ -235,20 +237,20 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
             color: AppColors.textMuted.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No medicines yet',
-            style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
+          Text(
+            loc.translate('no_meds_title'),
+            style: const TextStyle(fontSize: 18, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Tap + to add your first medicine',
-            style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+          Text(
+            loc.translate('no_meds_subtitle'),
+            style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => _openAddMedicine(context),
             icon: const Icon(Icons.add),
-            label: const Text('Add Medicine'),
+            label: Text(loc.translate('add_medicine')),
           ),
         ],
       ),

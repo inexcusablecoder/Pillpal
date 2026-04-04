@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import '../config/theme.dart';
 import '../models/dose_log.dart';
+import 'package:provider/provider.dart';
+import '../providers/localization_provider.dart';
 
 class StatusChip extends StatelessWidget {
   final DoseStatus status;
@@ -9,6 +9,7 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationProvider>();
     Color bg;
     Color fg;
     String label;
@@ -18,17 +19,17 @@ class StatusChip extends StatelessWidget {
       case DoseStatus.taken:
         bg = AppColors.success.withValues(alpha: 0.15);
         fg = AppColors.successLight;
-        label = 'Taken';
+        label = loc.translate('taken');
         icon = Icons.check_circle_rounded;
       case DoseStatus.missed:
         bg = AppColors.danger.withValues(alpha: 0.15);
         fg = AppColors.dangerLight;
-        label = 'Missed';
+        label = loc.translate('missed');
         icon = Icons.cancel_rounded;
       case DoseStatus.pending:
         bg = AppColors.warning.withValues(alpha: 0.15);
         fg = AppColors.warningLight;
-        label = 'Pending';
+        label = loc.translate('pending');
         icon = Icons.schedule_rounded;
     }
 

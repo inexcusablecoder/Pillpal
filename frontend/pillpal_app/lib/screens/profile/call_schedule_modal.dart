@@ -23,6 +23,8 @@ class _CallScheduleModalState extends State<CallScheduleModal> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isLoading = false;
+  List<dynamic> _history = [];
+  bool _isLoadingHistory = false;
 
   @override
   void initState() {
@@ -30,7 +32,21 @@ class _CallScheduleModalState extends State<CallScheduleModal> {
     if (widget.editSchedule != null) {
       _loadEditData();
     } else {
+      _phoneController.text = '+91';
       _loadLastPhone();
+    }
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoadingHistory = true);
+    try {
+      final data = await ApiClient.instance.getCallHistory();
+      setState(() => _history = data);
+    } catch (e) {
+      debugPrint('Error loading call history: $e');
+    } finally {
+      setState(() => _isLoadingHistory = false);
     }
   }
 
@@ -269,7 +285,55 @@ class _CallScheduleModalState extends State<CallScheduleModal> {
             ],
           ),
           const SizedBox(height: 24),
+          const SizedBox(height: 24),
           SizedBox(width: double.infinity, child: GradientButton(text: isEditing ? 'Update Schedule' : 'Save Schedule', isLoading: _isLoading, onPressed: _saveSchedule)),
+          
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text('Recent Call Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          const SizedBox(height: 12),
+          if (_isLoadingHistory)
+            const Center(child: CircularProgressIndicator())
+          else if (_history.isEmpty)
+            const Text('No recent calls found.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13))
+          else
+            ..._history.take(5).map((h) => _buildHistoryItem(h)),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(Map<String, dynamic> h) {
+    final bool isFailed = h['status'] == 'failed';
+    final DateTime? ts = DateTime.tryParse(h['timestamp'] ?? '');
+    final String timeStr = ts != null ? DateFormat('MMM d, HH:mm').format(ts) : '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(
+            isFailed ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+            size: 18,
+            color: isFailed ? AppColors.danger : AppColors.success,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${h['call_type'] == 'text' ? "Voice Msg" : "Audio Call"} to ${h['phone']}',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                ),
+                if (isFailed && h['error_message'] != null)
+                  Text(h['error_message'], style: const TextStyle(fontSize: 11, color: AppColors.danger)),
+              ],
+            ),
+          ),
+          Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
         ],
       ),
     );

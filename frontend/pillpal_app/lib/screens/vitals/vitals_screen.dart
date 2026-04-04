@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
-import '../../models/vital_log.dart';
-import '../../providers/family_provider.dart';
-import '../../providers/vitals_provider.dart';
 import '../../widgets/glass_card.dart';
+import '../../providers/localization_provider.dart';
 
 class VitalsScreen extends StatefulWidget {
   const VitalsScreen({super.key});
@@ -53,6 +50,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
   Widget build(BuildContext context) {
     final vitalsProvider = context.watch<VitalsProvider>();
     final family = context.watch<FamilyProvider>();
+    final loc = context.watch<LocalizationProvider>();
     final memberName = family.isViewingSelf ? '' : ' — ${family.activeMember.name}';
 
     // Re-fetch when active member changes
@@ -79,7 +77,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Health Vitals$memberName',
+                    '${loc.translate('vitals_title')}$memberName',
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -87,9 +85,9 @@ class _VitalsScreenState extends State<VitalsScreen> {
                     ),
                   ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.1),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Track your progress over time',
-                    style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                  Text(
+                    loc.translate('vitals_subtitle'),
+                    style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
                   ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
                 ],
               ),
@@ -134,14 +132,14 @@ class _VitalsScreenState extends State<VitalsScreen> {
                       child: const Icon(Icons.favorite_border_rounded, size: 64, color: AppColors.primary),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'No vitals logged yet',
-                      style: TextStyle(fontSize: 18, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                    Text(
+                      loc.translate('no_vitals_title'),
+                      style: const TextStyle(fontSize: 18, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Tap + to start tracking your health daily.',
-                      style: TextStyle(color: AppColors.textMuted),
+                    Text(
+                      loc.translate('no_vitals_subtitle'),
+                      style: const TextStyle(color: AppColors.textMuted),
                     ),
                   ],
                 ).animate().fadeIn(delay: 300.ms),
@@ -153,7 +151,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildVitalChartCard(
-                    title: 'Blood Pressure',
+                    title: loc.translate('blood_pressure'),
                     type: 'bp',
                     icon: Icons.favorite_rounded,
                     color: AppColors.danger,
@@ -161,26 +159,29 @@ class _VitalsScreenState extends State<VitalsScreen> {
                     provider: vitalsProvider,
                     unit: 'mmHg',
                     isBP: true,
+                    loc: loc,
                   ),
                   const SizedBox(height: 16),
                   _buildVitalChartCard(
-                    title: 'Heart Rate',
+                    title: loc.translate('heart_rate'),
                     type: 'hr',
                     icon: Icons.monitor_heart_rounded,
                     color: AppColors.primary,
                     secondaryColor: AppColors.primaryLight,
                     provider: vitalsProvider,
                     unit: 'BPM',
+                    loc: loc,
                   ),
                   const SizedBox(height: 16),
                   _buildVitalChartCard(
-                    title: 'Weight',
+                    title: loc.translate('weight'),
                     type: 'weight',
                     icon: Icons.scale_rounded,
                     color: AppColors.success,
                     secondaryColor: const Color(0xFF6EE7B7),
                     provider: vitalsProvider,
                     unit: 'lbs',
+                    loc: loc,
                   ),
                 ]),
               ),
@@ -233,6 +234,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
     required Color secondaryColor,
     required VitalsProvider provider,
     required String unit,
+    required LocalizationProvider loc,
     bool isBP = false,
   }) {
     final allLogs = provider.getLogsByType(type);
@@ -377,9 +379,9 @@ class _VitalsScreenState extends State<VitalsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _legendDot(color, 'Systolic'),
+                _legendDot(color, loc.translate('systolic')),
                 const SizedBox(width: 24),
-                _legendDot(secondaryColor, 'Diastolic'),
+                _legendDot(secondaryColor, loc.translate('diastolic')),
               ],
             ),
           ],
@@ -641,8 +643,9 @@ class _VitalsScreenState extends State<VitalsScreen> {
   }
 
   _TrendInfo _getTrend(List<VitalLog> logs, {bool isBP = false}) {
+    final loc = context.read<LocalizationProvider>();
     if (logs.length < 2) {
-      return _TrendInfo('Stable', Icons.trending_flat_rounded, AppColors.textMuted);
+      return _TrendInfo(loc.translate('stable'), Icons.trending_flat_rounded, AppColors.textMuted);
     }
 
     final recent = logs.last;

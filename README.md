@@ -1,52 +1,73 @@
-# PillPal — Medicine Reminder & Health Monitoring
+# PillPal — Intelligent Multilingual Medicine Reminder & Health Monitoring
 
-**Team:** CodeConquerors · **Hackathon track:** Healthcare  
+**Team:** CodeConquerors · **Hackathon Track:** Healthcare  
+**Branch:** `calling_agent` (DeepSeek & Twilio Integration)
 
-**Problem statement:** Build a mobile app that reminds patients to take medications, sends notifications, tracks schedules, and maintains a history of medicine intake to improve adherence.
-
-## Tech stack
-
-| Layer | Stack |
-|-------|--------|
-| Mobile | Flutter (Android) |
-| API | FastAPI |
-| Database | PostgreSQL |
-
-## Run locally
-
-Terminal 1 — API (from `backend/`):
-
-```bash
-py -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Terminal 2 — app (from `frontend/pillpal_app/`):
-
-```bash
-flutter pub get && flutter run
-```
-
-Configure DB via `backend/.env` (see `backend/.env.example`). Details: [frontend/pillpal_app/README.md](frontend/pillpal_app/README.md).
-
-## Documentation
-
-| File | Contents |
-|------|----------|
-| [docs/architecture.md](docs/architecture.md) | System design, PostgreSQL schema, API outline, folder layout |
-| [docs/decision.md](docs/decision.md) | Technology choices and rationale |
-| [docs/work-distribution.md](docs/work-distribution.md) | Team roles (Nikhil, Shreyash, CR, Snehal), phased step-by-step plan |
-| [docs/backend-plan.md](docs/backend-plan.md) | Full feature list, backend implementation, work breakdown, **backend phases 1–6** |
-| [frontend/README.md](frontend/README.md) | Where the Flutter app lives (`frontend/pillpal_app/`) |
-
-## Team
-
-| Role | Name |
-|------|------|
-| Frontend | Nikhil |
-| Backend | Shreyash |
-| UI/UX | CR |
-| DevOps / QA | Snehal |
+PillPal is a state-of-the-art health companion designed to improve medication adherence through high-tech reminders and a user-friendly, localized experience. It bridges the gap for non-English speakers and elderly users by providing reminders in their native tongues and via direct phone calls.
 
 ---
 
-**Repository layout:** `backend/` (FastAPI), `frontend/pillpal_app/` (Flutter), `docs/` (architecture and planning). Work in the Flutter project under `frontend/`, not at repo root.
+## 🚀 Key Features
+
+### 🌍 1. Full Multilingual Localization (8 Languages)
+PillPal is fully localized into **8 major Indian languages**, ensuring inclusivity for users across the country:
+- **English** | **Hindi (हिंदी)** | **Bengali (বাংলা)** | **Telugu (తెలుగు)**
+- **Marathi (मराठी)** | **Tamil (தமிழ்)** | **Gujarati (ગુજરાતી)** | **Kannada (ಕನ್ನಡ)**
+
+The entire UI—from login to medical history—dynamically updates its text, placeholders, and validation messages based on the user's preference.
+
+### 📞 2. Premium Twilio Calling Agent
+For users who need more than just a push notification, PillPal integrates a **Twilio-powered calling agent**:
+- **Automated Reminders:** Receives a real phone call at the scheduled dosage time.
+- **Localized Voice:** The bot speaks to the user (via Twilio Programmable Voice) providing clear instructions.
+- **Background Scheduling:** A robust FastAPI backend with `APScheduler` manages millions of dose events with sub-second precision.
+
+### 📊 3. Health Monitoring & Family Tracking
+- **Inventory Management:** Automatically tracks pill counts and notifies users when a refill is needed based on custom thresholds.
+- **Vitals Dashboard:** Track blood pressure, heart rate, and historical trends.
+- **Family Profiles:** Switch between family members to manage medications for children or elderly parents from a single account.
+
+---
+
+## 🛠️ Technical Architecture
+
+| Layer | Technology | Key Features |
+|-------|------------|--------------|
+| **Mobile** | **Flutter** | Glassmorphism UI, `Provider` state management, `flutter_animate` |
+| **API** | **FastAPI** | Async operations, JWT Auth, Pydantic validation |
+| **Worker** | **APScheduler** | Background job execution for Twilio triggers |
+| **Calls** | **Twilio API** | Programmable Voice for automated pill reminders |
+| **Database** | **PostgreSQL** | Neon Serverless integration with SQLAlchemy Async |
+
+---
+
+## 💻 Local Setup & Deployment
+
+### 1. Backend (FastAPI)
+Navigate to `backend/` and configure your `.env` file with `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `DATABASE_URL`.
+```bash
+# Start the server
+python -m uvicorn app.main:app --reload
+```
+
+### 2. Frontend (Flutter)
+Navigate to `frontend/pillpal_app/`.
+```bash
+flutter pub get
+flutter run -d chrome  # Or your preferred mobile emulator
+```
+
+---
+
+## 📖 Documentation & Planning
+
+| Document | Purpose |
+|----------|---------|
+| [docs/architecture.md](docs/architecture.md) | System design & PostgreSQL schema |
+| [docs/decision.md](docs/decision.md) | Why we chose FastAPI, Twilio, and Flutter |
+| [backend/app/services/twilio_calls.py](backend/app/services/twilio_calls.py) | Core logic for the automated calling agent |
+| [lib/utils/translations.dart](frontend/pillpal_app/lib/utils/translations.dart) | Centralized dictionary for 8-language support |
+
+---
+
+Developed with ❤️ by **CodeConquerors** (Nikhil, Shreyash, CR, Snehal)

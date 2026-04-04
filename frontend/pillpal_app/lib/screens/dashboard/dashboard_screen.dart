@@ -10,6 +10,7 @@ import '../../providers/medicine_provider.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/dose_card.dart';
 import '../../widgets/glass_card.dart';
+import '../../providers/localization_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -36,8 +37,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final auth = context.watch<AuthProvider>();
     final doses = context.watch<DoseLogProvider>();
     final family = context.watch<FamilyProvider>();
+    final loc = context.watch<LocalizationProvider>();
     final now = DateTime.now();
-    final greeting = _getGreeting(now.hour);
+    final greetingKey = _getGreetingKey(now.hour);
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -53,7 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$greeting,',
+                    '${loc.translate(greetingKey)},',
                     style: const TextStyle(
                       fontSize: 15,
                       color: AppColors.textSecondary,
@@ -113,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Viewing ${family.activeMember.name}\'s data',
+                          '${loc.translate('viewing')} ${family.activeMember.name}\'s ${loc.translate('data')}',
                           style: TextStyle(
                             color: family.activeMember.avatarColor,
                             fontWeight: FontWeight.w600,
@@ -132,9 +134,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Back to me',
-                            style: TextStyle(
+                          child: Text(
+                            loc.translate('back_to_me'),
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primary,
@@ -190,7 +192,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Low Stock: You only have ${med.pillCount} pills of ${med.name} left!',
+                                  '${loc.translate('low_stock')}: ${loc.translate('only_have')} ${med.pillCount} ${loc.translate('pills_of')} ${med.name} ${loc.translate('left')}!',
                                   style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                                 ),
                               ),
@@ -218,9 +220,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "Today's Schedule",
-                    style: TextStyle(
+                  Text(
+                    loc.translate('today_schedule'),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
@@ -440,15 +442,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatsRow(DoseLogProvider doses) {
+    final loc = context.read<LocalizationProvider>();
     return Row(
       children: [
-        Expanded(child: _statCard('Total', '${doses.todayTotal}', Icons.list_alt_rounded, AppColors.primary)),
+        Expanded(child: _statCard(loc.translate('total'), '${doses.todayTotal}', Icons.list_alt_rounded, AppColors.primary)),
         const SizedBox(width: 10),
-        Expanded(child: _statCard('Taken', '${doses.todayTaken}', Icons.check_circle_rounded, AppColors.success)),
+        Expanded(child: _statCard(loc.translate('taken'), '${doses.todayTaken}', Icons.check_circle_rounded, AppColors.success)),
         const SizedBox(width: 10),
-        Expanded(child: _statCard('Pending', '${doses.todayPending}', Icons.schedule_rounded, AppColors.warning)),
+        Expanded(child: _statCard(loc.translate('pending'), '${doses.todayPending}', Icons.schedule_rounded, AppColors.warning)),
         const SizedBox(width: 10),
-        Expanded(child: _statCard('Missed', '${doses.todayMissed}', Icons.cancel_rounded, AppColors.danger)),
+        Expanded(child: _statCard(loc.translate('missed'), '${doses.todayMissed}', Icons.cancel_rounded, AppColors.danger)),
       ],
     );
   }
@@ -500,10 +503,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  String _getGreeting(int hour) {
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+  String _getGreetingKey(int hour) {
+    if (hour < 12) return 'good_morning';
+    if (hour < 17) return 'good_afternoon';
+    return 'good_evening';
   }
 
   Future<void> _takeDose(String logId) async {

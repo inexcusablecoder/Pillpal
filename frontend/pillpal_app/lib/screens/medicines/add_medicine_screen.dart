@@ -8,6 +8,8 @@ import '../../providers/medicine_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/gradient_button.dart';
+import '../../providers/localization_provider.dart';
+import '../../utils/translations.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   final Medicine? medicine; // null = add, non-null = edit
@@ -172,8 +174,8 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Select a medicine from the list or enter a name under Other.'),
+          SnackBar(
+            content: Text(loc.translate('select_med_error')),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -222,14 +224,14 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Medicine updated!' : 'Medicine added!'),
+            content: Text(isEditing ? loc.translate('med_updated') : loc.translate('med_added')),
             backgroundColor: AppColors.success,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(meds.error ?? 'Something went wrong'),
+            content: Text(meds.error ?? loc.translate('wrong_error')),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -239,10 +241,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationProvider>();
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Medicine' : 'Add Medicine'),
+        title: Text(isEditing ? loc.translate('edit_med_title') : loc.translate('add_med_title')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
@@ -298,17 +301,17 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 menuMaxHeight: 360,
                 dropdownColor: AppColors.surface,
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                decoration: const InputDecoration(
-                  labelText: 'Medicine',
-                  prefixIcon: Icon(Icons.medical_services_outlined, color: AppColors.textMuted),
-                  hintText: 'Choose from list',
+                decoration: InputDecoration(
+                  labelText: loc.translate('nav_meds'),
+                  prefixIcon: const Icon(Icons.medical_services_outlined, color: AppColors.textMuted),
+                  hintText: loc.translate('choose_from_list'),
                 ),
                 items: [
-                  const DropdownMenuItem<String?>(
+                  DropdownMenuItem<String?>(
                     value: null,
                     child: Text(
-                      '— Select medicine —',
-                      style: TextStyle(color: AppColors.textMuted),
+                      '— ${loc.translate('select_medicine')} —',
+                      style: const TextStyle(color: AppColors.textMuted),
                     ),
                   ),
                   ..._catalogNames.map(
@@ -317,26 +320,26 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       child: Text(n, overflow: TextOverflow.ellipsis),
                     ),
                   ),
-                  const DropdownMenuItem<String?>(
+                  DropdownMenuItem<String?>(
                     value: CommonMedicines.otherValue,
-                    child: Text('Other — type name below'),
+                    child: Text(loc.translate('other_type_name')),
                   ),
                 ],
                 onChanged: (v) => setState(() => _selectedMedicine = v),
-                validator: (v) => v == null ? 'Select a medicine' : null,
+                validator: (v) => v == null ? loc.translate('select_medicine') : null,
               ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: 0.1),
               if (_selectedMedicine == CommonMedicines.otherValue) ...[
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _otherNameController,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: const InputDecoration(
-                    labelText: 'Custom medicine name',
-                    prefixIcon: Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
-                    hintText: 'e.g. custom brand',
+                  decoration: InputDecoration(
+                    labelText: loc.translate('custom_med_name'),
+                    prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColors.textMuted),
+                    hintText: loc.translate('eg_brand'),
                   ),
                   validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Enter the medicine name' : null,
+                      v == null || v.trim().isEmpty ? loc.translate('enter_med_name_error') : null,
                 ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.05),
               ],
               const SizedBox(height: 16),
@@ -345,12 +348,12 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               TextFormField(
                 controller: _dosageController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Dosage',
-                  prefixIcon: Icon(Icons.science_outlined, color: AppColors.textMuted),
-                  hintText: 'e.g. 500mg',
+                decoration: InputDecoration(
+                  labelText: loc.translate('dosage'),
+                  prefixIcon: const Icon(Icons.science_outlined, color: AppColors.textMuted),
+                  hintText: loc.translate('eg_dosage'),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Dosage is required' : null,
+                validator: (v) => v == null || v.trim().isEmpty ? loc.translate('dosage_error') : null,
               ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideX(begin: 0.1),
               const SizedBox(height: 16),
 
@@ -361,7 +364,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   child: TextFormField(
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      labelText: 'Scheduled Time',
+                      labelText: loc.translate('scheduled_time'),
                       prefixIcon: const Icon(Icons.schedule, color: AppColors.textMuted),
                       hintText: _formatTime(_selectedTime),
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: AppColors.textMuted),
@@ -377,10 +380,10 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 controller: _pillCountController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Box Inventory (optional)',
-                  prefixIcon: Icon(Icons.inventory_2_outlined, color: AppColors.textMuted),
-                  hintText: 'e.g. 30 pills in box',
+                decoration: InputDecoration(
+                  labelText: loc.translate('inventory_label'),
+                  prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.textMuted),
+                  hintText: loc.translate('inventory_hint'),
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 400.ms).slideX(begin: 0.1),
               const SizedBox(height: 16),
@@ -390,22 +393,22 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 controller: _thresholdController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Refill Warning Threshold',
-                  prefixIcon: Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-                  hintText: 'e.g. 5 (Warn when 5 pills left)',
+                decoration: InputDecoration(
+                  labelText: loc.translate('refill_threshold'),
+                  prefixIcon: const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+                  hintText: loc.translate('threshold_hint'),
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 450.ms).slideX(begin: 0.1),
               const SizedBox(height: 16),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Remind me at this time',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                title: Text(
+                  loc.translate('remind_me_at_time'),
+                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text(
-                  'Alarm-style notification when Profile → Alarm reminders is on',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                subtitle: Text(
+                  loc.translate('reminder_subtitle'),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
                 value: _reminderEnabled,
                 activeThumbColor: AppColors.primary,
@@ -415,7 +418,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
               // Save button
               GradientButton(
-                text: isEditing ? 'Update Medicine' : 'Add Medicine',
+                text: isEditing ? loc.translate('edit_med_title') : loc.translate('add_med_title'),
                 isLoading: _isLoading,
                 onPressed: _save,
                 icon: isEditing ? Icons.save_rounded : Icons.add_rounded,

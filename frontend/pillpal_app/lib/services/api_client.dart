@@ -85,6 +85,7 @@ class ApiClient {
     String? displayName,
     bool? alarmRemindersEnabled,
     String? phoneE164,
+    String? language,
     bool clearPhone = false,
   }) async {
     final data = <String, dynamic>{};
@@ -92,6 +93,7 @@ class ApiClient {
     if (alarmRemindersEnabled != null) {
       data['alarm_reminders_enabled'] = alarmRemindersEnabled;
     }
+    if (language != null) data['language'] = language;
     if (clearPhone) {
       data['phone_e164'] = null;
     } else if (phoneE164 != null) {
@@ -99,6 +101,19 @@ class ApiClient {
     }
     final response = await _dio.patch('/users/me', data: data);
     return response.data as Map<String, dynamic>;
+  }
+
+  Future<String> getLanguage() async {
+    final response = await _dio.get('/translate/get-language');
+    return response.data['lang'] as String;
+  }
+
+  Future<List<String>> translate(List<String> texts, String lang) async {
+    final response = await _dio.post('/translate/translate', data: {
+      'texts': texts,
+      'lang': lang,
+    });
+    return (response.data['translated'] as List).map((e) => e.toString()).toList();
   }
 
   // ── Medicines ─────────────────────────────────────
@@ -247,6 +262,11 @@ class ApiClient {
       'messages': messages,
     });
     return response.data['response'] as String;
+  }
+
+  Future<List<dynamic>> getCallHistory() async {
+    final response = await _dio.get('/calls/history');
+    return response.data as List<dynamic>;
   }
 
   Future<String> getLastPhone() async {

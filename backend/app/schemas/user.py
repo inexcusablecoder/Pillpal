@@ -19,6 +19,7 @@ class UserUpdate(BaseModel):
     display_name: str | None = Field(default=None, max_length=255)
     phone_e164: str | None = Field(default=None, max_length=32)
     alarm_reminders_enabled: bool | None = None
+    language: str | None = Field(default=None, max_length=10)
 
     @field_validator("phone_e164", mode="before")
     @classmethod
@@ -34,6 +35,7 @@ class UserOut(BaseModel):
     display_name: str | None
     phone_e164: str | None
     alarm_reminders_enabled: bool
+    language: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

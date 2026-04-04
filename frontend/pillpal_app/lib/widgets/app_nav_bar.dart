@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../providers/localization_provider.dart';
+import 'package:provider/provider.dart';
 
 class AppNavBar extends StatelessWidget {
   final int currentIndex;
@@ -10,9 +11,9 @@ class AppNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
   });
-
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationProvider>();
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -36,11 +37,11 @@ class AppNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildItem(0, Icons.dashboard_rounded, 'Home'),
-              _buildItem(1, Icons.medication_rounded, 'Meds'),
-              _buildItem(2, Icons.history_rounded, 'History'),
-              _buildItem(3, Icons.monitor_heart_rounded, 'Vitals'),
-              _buildItem(4, Icons.person_rounded, 'Profile'),
+              _buildItem(0, Icons.dashboard_rounded, loc.translate('nav_home')),
+              _buildItem(1, Icons.medication_rounded, loc.translate('nav_meds')),
+              _buildItem(2, Icons.history_rounded, loc.translate('nav_history')),
+              _buildItem(3, Icons.monitor_heart_rounded, loc.translate('nav_vitals')),
+              _buildItem(4, Icons.person_rounded, loc.translate('nav_profile')),
             ],
           ),
         ),

@@ -75,6 +75,8 @@ class Translations {
       'alarm_reminders_subtitle_mobile': 'Requires notification + exact alarm permission on Android',
       'premium_calls_title': 'Premium Call Reminders',
       'premium_calls_subtitle': 'Get an actual automated phone call (via Twilio) for your medications.',
+      'premium_calls_hint':
+          'Open Configure Calls → use Setup status to verify Twilio, then Test call now. Trial accounts must verify the destination number in Twilio. Your schedule start/end dates must include today.',
       'configure_calls': 'Configure Calls',
       'active_schedules': 'Active Schedules',
       'my_family': 'My Family',

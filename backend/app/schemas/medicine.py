@@ -24,6 +24,13 @@ class MedicineUpdate(BaseModel):
     pill_count: int | None = Field(default=None, ge=0)
 
 
+class LabelPreviewOut(BaseModel):
+    product_name: str | None = None
+    strength: str | None = None
+    form: str | None = None
+    summary: str | None = None
+
+
 class MedicineOut(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
@@ -34,6 +41,8 @@ class MedicineOut(BaseModel):
     active: bool
     reminder_enabled: bool
     pill_count: int | None
+    label_image_key: str | None = None
+    label_analysis_text: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

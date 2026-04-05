@@ -10,6 +10,8 @@ class Medicine {
   final bool active;
   final bool reminderEnabled;
   final int? pillCount;
+  final String? labelImageKey;
+  final String? labelAnalysisText;
   final DateTime createdAt;
 
   Medicine({
@@ -22,6 +24,8 @@ class Medicine {
     required this.active,
     this.reminderEnabled = true,
     this.pillCount,
+    this.labelImageKey,
+    this.labelAnalysisText,
     required this.createdAt,
   });
 
@@ -40,6 +44,8 @@ class Medicine {
       active: json['active'] as bool,
       reminderEnabled: json['reminder_enabled'] as bool? ?? true,
       pillCount: json['pill_count'] as int?,
+      labelImageKey: json['label_image_key'] as String?,
+      labelAnalysisText: json['label_analysis_text'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

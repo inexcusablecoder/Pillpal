@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../config/constants.dart';
 import 'storage_service.dart';
@@ -178,6 +180,50 @@ class ApiClient {
     await _dio.delete('/medicines/$id');
   }
 
+  /// Cohere vision preview (multipart). Requires auth.
+  Future<Map<String, dynamic>> analyzeLabelPreview(Uint8List bytes, String filename) async {
+    final form = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/medicines/analyze-label-preview',
+      data: form,
+      options: Options(
+        sendTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 120),
+      ),
+    );
+    return response.data ?? {};
+  }
+
+  Future<void> uploadMedicineLabelImage(String medicineId, Uint8List bytes, String filename) async {
+    final form = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    await _dio.post(
+      '/medicines/$medicineId/label-image',
+      data: form,
+      options: Options(
+        sendTimeout: const Duration(seconds: 120),
+        receiveTimeout: const Duration(seconds: 120),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> analyzeMedicineLabelStored(String medicineId) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/medicines/$medicineId/analyze-label',
+      options: Options(
+        receiveTimeout: const Duration(seconds: 120),
+      ),
+    );
+    return response.data ?? {};
+  }
+
+  Future<void> deleteMedicineLabelImage(String medicineId) async {
+    await _dio.delete('/medicines/$medicineId/label-image');
+  }
+
   // ── Dose Logs ─────────────────────────────────────
 
   Future<Map<String, dynamic>> syncDoseLogs() async {
@@ -212,6 +258,7 @@ class ApiClient {
     required String callType,
     String? message,
     String? audioUrl,
+    String? scheduleTimezone,
   }) async {
     final response = await _dio.post('/calls/schedule', data: {
       'phone': phone,
@@ -221,6 +268,7 @@ class ApiClient {
       'call_type': callType,
       'message': message,
       'audio_url': audioUrl,
+      if (scheduleTimezone != null && scheduleTimezone.isNotEmpty) 'schedule_timezone': scheduleTimezone,
     });
     return response.data as Map<String, dynamic>;
   }
@@ -234,6 +282,7 @@ class ApiClient {
     required String callType,
     String? message,
     String? audioUrl,
+    String? scheduleTimezone,
   }) async {
     final response = await _dio.put('/calls/schedule/$id', data: {
       'phone': phone,
@@ -243,6 +292,20 @@ class ApiClient {
       'call_type': callType,
       'message': message,
       'audio_url': audioUrl,
+      if (scheduleTimezone != null && scheduleTimezone.isNotEmpty) 'schedule_timezone': scheduleTimezone,
+    });
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getCallReminderStatus() async {
+    final response = await _dio.get('/calls/reminder-status');
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> testReminderCall({String? phone, String mode = 'text'}) async {
+    final response = await _dio.post('/calls/test', data: {
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      'mode': mode,
     });
     return response.data as Map<String, dynamic>;
   }

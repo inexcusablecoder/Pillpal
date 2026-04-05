@@ -96,7 +96,7 @@ class MedicineProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await ApiClient.instance.createMedicine(
+      final created = await ApiClient.instance.createMedicine(
         name: name,
         dosage: dosage,
         scheduledTime: scheduledTime,
@@ -105,9 +105,7 @@ class MedicineProvider extends ChangeNotifier {
         pillCount: pillCount,
       );
       await fetchMedicines();
-
-      final match = _medicines.where((med) => med.name == name).toList();
-      return match.isNotEmpty ? match.first.id : null;
+      return created['id']?.toString();
     } on DioException catch (e) {
       _error = messageFromDio(e);
       _isLoading = false;

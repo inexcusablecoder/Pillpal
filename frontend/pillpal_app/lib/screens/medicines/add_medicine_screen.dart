@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../config/common_medicines.dart';
 import '../../config/theme.dart';
@@ -7,9 +9,10 @@ import '../../models/medicine.dart';
 import '../../providers/medicine_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/storage_service.dart';
+import '../../widgets/authenticated_medicine_label_image.dart';
 import '../../widgets/gradient_button.dart';
 import '../../providers/localization_provider.dart';
-import '../../utils/translations.dart';
+import '../../utils/api_error_message.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   final Medicine? medicine; // null = add, non-null = edit
@@ -32,8 +35,20 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
   bool _reminderEnabled = true;
   bool _isLoading = false;
+  bool _previewLoading = false;
+  bool _labelBusy = false;
+  Map<String, dynamic>? _previewFields;
 
   bool get isEditing => widget.medicine != null;
+
+  Medicine? _editingMedicine(MedicineProvider meds) {
+    if (!isEditing) return null;
+    final id = widget.medicine!.id;
+    for (final m in meds.medicines) {
+      if (m.id == id) return m;
+    }
+    return widget.medicine;
+  }
 
   @override
   void initState() {
@@ -132,6 +147,140 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
   }
 
+  Future<void> _pickAndPreviewLabel() async {
+    final picker = ImagePicker();
+    final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (x == null) return;
+    setState(() => _previewLoading = true);
+    try {
+      final bytes = await x.readAsBytes();
+      final data = await ApiClient.instance.analyzeLabelPreview(bytes, x.name);
+      if (!mounted) return;
+      setState(() {
+        _previewFields = data;
+        _previewLoading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _previewLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageFromDio(e)), backgroundColor: AppColors.danger),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _previewLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+      );
+    }
+  }
+
+  void _applyPreviewToForm() {
+    final p = _previewFields;
+    if (p == null) return;
+    final name = p['product_name']?.toString();
+    final strength = p['strength']?.toString();
+    if (name != null && name.isNotEmpty) {
+      if (_catalogNames.contains(name)) {
+        setState(() => _selectedMedicine = name);
+      } else {
+        setState(() {
+          _selectedMedicine = CommonMedicines.otherValue;
+          _otherNameController.text = name;
+        });
+      }
+    }
+    if (strength != null && strength.isNotEmpty) {
+      _dosageController.text = strength;
+    }
+    setState(() {});
+  }
+
+  Future<void> _uploadLabelPhoto() async {
+    if (!isEditing) return;
+    final meds = context.read<MedicineProvider>();
+    final picker = ImagePicker();
+    final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (x == null) return;
+    setState(() => _labelBusy = true);
+    try {
+      final bytes = await x.readAsBytes();
+      await ApiClient.instance.uploadMedicineLabelImage(widget.medicine!.id, bytes, x.name);
+      await meds.fetchMedicines();
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Label photo saved'), backgroundColor: AppColors.success),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageFromDio(e)), backgroundColor: AppColors.danger),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+      );
+    }
+  }
+
+  Future<void> _analyzeStoredLabel() async {
+    if (!isEditing) return;
+    final meds = context.read<MedicineProvider>();
+    setState(() => _labelBusy = true);
+    try {
+      await ApiClient.instance.analyzeMedicineLabelStored(widget.medicine!.id);
+      await meds.fetchMedicines();
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AI summary updated'), backgroundColor: AppColors.success),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageFromDio(e)), backgroundColor: AppColors.danger),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+      );
+    }
+  }
+
+  Future<void> _deleteLabelPhoto() async {
+    if (!isEditing) return;
+    final meds = context.read<MedicineProvider>();
+    setState(() => _labelBusy = true);
+    try {
+      await ApiClient.instance.deleteMedicineLabelImage(widget.medicine!.id);
+      await meds.fetchMedicines();
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Label photo removed'), backgroundColor: AppColors.success),
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageFromDio(e)), backgroundColor: AppColors.danger),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _labelBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.danger),
+      );
+    }
+  }
+
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -168,6 +317,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
     setState(() => _isLoading = true);
 
+    final loc = context.read<LocalizationProvider>();
     final meds = context.read<MedicineProvider>();
     final name = _resolvedMedicineName();
     if (name == null || name.isEmpty) {
@@ -242,6 +392,8 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationProvider>();
+    final meds = context.watch<MedicineProvider>();
+    final editMed = _editingMedicine(meds);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -414,6 +566,133 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 activeThumbColor: AppColors.primary,
                 onChanged: (v) => setState(() => _reminderEnabled = v),
               ).animate().fadeIn(duration: 400.ms, delay: 480.ms).slideX(begin: 0.1),
+              const SizedBox(height: 24),
+
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              Text(
+                'Label photo & AI',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isEditing
+                    ? 'Preview from any photo, or upload a label on this medicine and run full AI reading.'
+                    : 'Pick a label photo to preview extracted text (save the medicine first to store the image).',
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _previewLoading ? null : _pickAndPreviewLabel,
+                icon: _previewLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.document_scanner_outlined),
+                label: Text(_previewLoading ? 'Reading…' : 'Read label with AI (preview)'),
+              ),
+              if (_previewFields != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.surfaceLight),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _previewFields!['product_name']?.toString() ?? '—',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_previewFields!['strength'] ?? '—'} · ${_previewFields!['form'] ?? '—'}',
+                        style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      ),
+                      if (_previewFields!['summary'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            _previewFields!['summary'].toString(),
+                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: _applyPreviewToForm,
+                        icon: const Icon(Icons.edit_note_rounded, size: 18),
+                        label: const Text('Apply name & strength to form'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (isEditing) ...[
+                const SizedBox(height: 16),
+                if ((editMed?.labelImageKey ?? '').isNotEmpty)
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: AuthenticatedMedicineLabelImage(
+                        medicineId: widget.medicine!.id,
+                        width: 168,
+                        height: 168,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _labelBusy ? null : _uploadLabelPhoto,
+                      icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                      label: const Text('Upload label'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _labelBusy ? null : _analyzeStoredLabel,
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('AI read saved photo'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _labelBusy ? null : _deleteLabelPhoto,
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Remove'),
+                    ),
+                  ],
+                ),
+                if (editMed != null && (editMed.labelAnalysisText ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'AI label summary',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    editMed.labelAnalysisText!,
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                  ),
+                ],
+              ],
               const SizedBox(height: 24),
 
               // Save button

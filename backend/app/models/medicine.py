@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, time, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Time
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,8 @@ class Medicine(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     pill_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    label_image_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    label_analysis_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

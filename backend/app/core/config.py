@@ -1,11 +1,19 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_ENV_FILE = BACKEND_ROOT / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=_ENV_FILE,
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     environment: Literal["development", "staging", "production"] = "development"
 
@@ -15,14 +23,20 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     dose_grace_minutes: int = 60
     api_v1_prefix: str = "/api/v1"
-    
-    # Twilio (Voice Calls)
+
+    medicine_label_upload_dir: str = "uploads/medicine_labels"
+    medicine_label_max_bytes: int = 5 * 1024 * 1024  # 5 MiB
+
+    cohere_api_key: str | None = None
+    cohere_vision_model: str = "command-a-vision-07-2025"
+
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_number: str | None = None
+    # IANA zone when app does not send one (e.g. old clients). Reminder times match this zone.
+    call_schedule_default_timezone: str = "Asia/Kolkata"
     groq_api_key: str | None = None
 
-    # Comma-separated origins, or "*" for all. Wildcard disables credentials (browser CORS rules).
     cors_origins: str = "*"
 
     @model_validator(mode="after")

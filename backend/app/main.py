@@ -13,7 +13,8 @@ from sqlalchemy import text
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import engine
-from app.services.twilio_calls import startup_twilio_service
+from app.services.medicine_label_images import ensure_upload_dir
+from app.services.twilio_calls import shutdown_twilio_service, startup_twilio_service
 
 logger = logging.getLogger("pillpal")
 
@@ -25,10 +26,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
     logger.info("Starting PillPal API (environment=%s)", settings.environment)
+    ensure_upload_dir()
     logger.info("Starting Twilio Call Scheduler")
     startup_twilio_service()
     yield
-    logger.info("Shutting down — disposing DB engine pool")
+    logger.info("Shutting down — stopping schedulers and DB pool")
+    shutdown_twilio_service()
     await engine.dispose()
 
 

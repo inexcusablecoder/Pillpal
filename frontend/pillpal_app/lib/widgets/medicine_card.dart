@@ -1,6 +1,9 @@
-import 'glass_card.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/theme.dart';
+import '../models/medicine.dart';
 import '../providers/localization_provider.dart';
+import 'glass_card.dart';
 
 class MedicineCard extends StatelessWidget {
   final Medicine medicine;

@@ -11,9 +11,13 @@ class LocalizationProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   // Helper method for shorthand access
-  String translate(String key) {
-    return Translations.get(key, _currentLanguage);
+  String translate(String key, {Map<String, String>? params}) {
+    return Translations.get(key, _currentLanguage, params: params);
   }
+
+  /// Shorthand for strings with `{name}` placeholders (e.g. history subtitle).
+  String getWithParams(String key, Map<String, String> params) =>
+      translate(key, params: params);
 
   Future<void> init() async {
     final storage = await StorageService.getInstance();

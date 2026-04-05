@@ -23,7 +23,10 @@ target_metadata = Base.metadata
 
 def _sync_database_url(url: str) -> str:
     if url.startswith("postgresql+asyncpg://"):
-        return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    # psycopg2 sync driver does not accept libpq channel_binding in URL
+    url = url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?")
+    url = url.replace("?channel_binding=require", "")
     return url
 
 

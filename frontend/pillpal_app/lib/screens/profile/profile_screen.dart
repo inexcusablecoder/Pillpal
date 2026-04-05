@@ -70,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final family = context.watch<FamilyProvider>();
+    final loc = context.watch<LocalizationProvider>();
     _syncPhoneFieldForUser(user?.id, user?.phoneE164);
 
     return Scaffold(
@@ -143,41 +144,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
 
               // Language Setting
-              Consumer<LocalizationProvider>(
-                builder: (context, loc, _) => GlassCard(
-                  padding: const EdgeInsets.all(16),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(loc.translate('language'), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                            const SizedBox(height: 2),
-                            Text(
-                              LocalizationProvider.supportedLanguages.firstWhere((l) => l['code'] == loc.currentLanguage)['name']!,
-                              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
+                      child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(loc.translate('language'), style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          const SizedBox(height: 2),
+                          Text(
+                            LocalizationProvider.supportedLanguages.firstWhere((l) => l['code'] == loc.currentLanguage)['name']!,
+                            style: const TextStyle(fontSize: 15, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    ],
-                  ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                  ],
                 ),
               ).animate().fadeIn(duration: 500.ms, delay: 320.ms).slideY(begin: 0.1),
 
@@ -339,6 +338,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       loc.translate('premium_calls_subtitle'),
                       style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      loc.translate('premium_calls_hint'),
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.35),
+                    ),
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
@@ -452,7 +456,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.danger),
-              onPressed: () => _confirmDeleteSchedule(s['id']),
+              onPressed: () {
+                final raw = s['id'];
+                final sid = raw is int ? raw : int.parse(raw.toString());
+                _confirmDeleteSchedule(sid);
+              },
             ),
           ],
         ),
@@ -656,6 +664,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showMemberOptions(FamilyMember member) {
     final familyProvider = context.read<FamilyProvider>();
+    final loc = context.read<LocalizationProvider>();
 
     showModalBottomSheet(
       context: context,
@@ -821,6 +830,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _editableName(AuthProvider auth) {
+    final loc = context.read<LocalizationProvider>();
     if (_isEditing) {
       return Row(
         children: [

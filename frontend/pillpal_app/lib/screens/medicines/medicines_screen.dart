@@ -200,7 +200,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
               )
             else if (meds.medicines.isEmpty)
               SliverFillRemaining(
-                child: _buildEmptyState(context).animate().fadeIn(duration: 500.ms, delay: 200.ms),
+                child: _buildEmptyState(context, loc).animate().fadeIn(duration: 500.ms, delay: 200.ms),
               )
             else
               SliverPadding(
@@ -226,7 +226,7 @@ class _MedicinesScreenState extends State<MedicinesScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, LocalizationProvider loc) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

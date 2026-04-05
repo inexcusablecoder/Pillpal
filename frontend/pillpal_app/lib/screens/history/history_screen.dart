@@ -117,7 +117,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                  child: _buildSummary(doses.historyLogs).animate().fadeIn(duration: 500.ms, delay: 300.ms),
+                  child: _buildSummary(doses.historyLogs, loc).animate().fadeIn(duration: 500.ms, delay: 300.ms),
                 ),
               ),
 
@@ -184,7 +184,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildSummary(List<DoseLog> logs) {
+  Widget _buildSummary(List<DoseLog> logs, LocalizationProvider loc) {
     final taken = logs.where((l) => l.isTaken).length;
     final missed = logs.where((l) => l.isMissed).length;
     final total = taken + missed;

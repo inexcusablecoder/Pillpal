@@ -11,6 +11,10 @@ class AppConstants {
   }
   static const String apiPrefix = '/api/v1';
 
+  /// Authenticated GET for the stored label JPEG/PNG/WebP (send `Authorization: Bearer` header).
+  static String medicineLabelImageUrl(String medicineId) =>
+      '$apiBaseUrl$apiPrefix/medicines/$medicineId/label-image';
+
   static const String tokenKey = 'pillpal_jwt_token';
   static const String userKey = 'pillpal_user';
 

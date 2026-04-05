@@ -1,6 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/localization_provider.dart';
-import 'package:provider/provider.dart';
 
 class AppNavBar extends StatelessWidget {
   final int currentIndex;

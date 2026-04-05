@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../config/theme.dart';
+import '../../models/vital_log.dart';
 import '../../widgets/glass_card.dart';
+import '../../providers/family_provider.dart';
 import '../../providers/localization_provider.dart';
+import '../../providers/vitals_provider.dart';
 
 class VitalsScreen extends StatefulWidget {
   const VitalsScreen({super.key});

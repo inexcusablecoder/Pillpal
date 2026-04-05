@@ -22,3 +22,6 @@ coverage.xml
 # IDE
 .idea/
 .vscode/
+
+# User-uploaded label images (local only)
+uploads/

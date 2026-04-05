@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../../config/theme.dart';
 import '../../widgets/gradient_button.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/localization_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -58,10 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 60),
                 // Logo & Branding
-                _buildHeader().animate().fadeIn(duration: 600.ms).slideY(begin: -0.3),
+                _buildHeader(loc).animate().fadeIn(duration: 600.ms).slideY(begin: -0.3),
                 const SizedBox(height: 48),
                 // Form
-                _buildForm(auth).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideY(begin: 0.2),
+                _buildForm(auth, loc).animate().fadeIn(duration: 600.ms, delay: 200.ms).slideY(begin: 0.2),
                 const SizedBox(height: 24),
                 // Login button
                 GradientButton(
@@ -100,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(LocalizationProvider loc) {
     return Column(
       children: [
         Container(
@@ -141,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildForm(AuthProvider auth) {
+  Widget _buildForm(AuthProvider auth, LocalizationProvider loc) {
     return Form(
       key: _formKey,
       child: Column(

@@ -1,5 +1,7 @@
-import '../models/dose_log.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/theme.dart';
+import '../models/dose_log.dart';
 import '../providers/localization_provider.dart';
 
 class StatusChip extends StatelessWidget {
